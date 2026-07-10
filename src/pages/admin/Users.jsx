@@ -67,13 +67,19 @@ function NewUser({ onClose, onDone }) {
   const [email, setEmail] = useState('');
   const [nombre, setNombre] = useState('');
   const [rol, setRol] = useState('usuario');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit() {
     if (!email.trim() || !nombre.trim()) return toast.show('Completa nombre y correo', 'err');
+    if (password && password.length < 6) return toast.show('La contraseña debe tener al menos 6 caracteres', 'err');
     setBusy(true);
-    try { await createUser({ email: email.trim(), nombre: nombre.trim(), rol }); onDone(); }
-    catch (e) { toast.show(e.message, 'err'); setBusy(false); }
+    try {
+      const payload = { email: email.trim(), nombre: nombre.trim(), rol };
+      if (password) payload.password = password;
+      await createUser(payload);
+      onDone();
+    } catch (e) { toast.show(e.message, 'err'); setBusy(false); }
   }
 
   return (
@@ -92,7 +98,15 @@ function NewUser({ onClose, onDone }) {
           {ROLES.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
-      <div className="fc-help-text" style={{ marginBottom: 12 }}>Se enviará una invitación por correo para fijar la contraseña.</div>
+      <div className="fc-field">
+        <label className="fc-label">Contraseña</label>
+        <input className="fc-input" type="text" value={password} onChange={(e) => setPassword(e.target.value)}
+          placeholder="Déjala en blanco para enviar invitación por correo" autoComplete="new-password" />
+        <div className="fc-help-text">
+          Si pones una contraseña, la cuenta queda lista de inmediato y se la entregas al usuario.
+          Si la dejas en blanco, se envía una invitación por correo (requiere SMTP configurado en Supabase).
+        </div>
+      </div>
       <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy} onClick={submit}>
         {busy ? 'Creando…' : 'Crear usuario'}
       </button>

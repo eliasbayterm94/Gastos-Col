@@ -17,3 +17,9 @@ export const IcRefresh = (p) => <S {...p}><path d="M3 12a9 9 0 0 1 15-6.7L21 8M2
 export const IcLogout = (p) => <S {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></S>;
 export const IcInbox = (p) => <S {...p}><path d="M22 12h-6l-2 3h-4l-2-3H2M5 5h14l3 7v7H2v-7z" /></S>;
 export const IcUpload = (p) => <S {...p}><path d="M21 15v4H3v-4M12 3v13M7 8l5-5 5 5" /></S>;
+export const IcGrid = (p) => <S {...p}><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" /></S>;
+export const IcMenu = (p) => <S {...p}><path d="M3 6h18M3 12h18M3 18h18" /></S>;
+export const IcSend = (p) => <S {...p}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></S>;
+export const IcUsers = (p) => <S {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></S>;
+export const IcTag = (p) => <S {...p}><path d="M20 10l-8-8H4v8l8 8 8-8zM7 7h.01" /></S>;
+export const IcShield = (p) => <S {...p}><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z" /></S>;

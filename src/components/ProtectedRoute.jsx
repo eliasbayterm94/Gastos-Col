@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
 import { Spinner } from './ui.jsx';
 
-const HOME_BY_ROLE = { usuario: '/gastos', contabilidad: '/rev', admin: '/admin' };
+const HOME_BY_ROLE = { usuario: '/gastos', contabilidad: '/c', admin: '/admin' };
 
 export default function ProtectedRoute({ children, roles }) {
   const { loading, session, role } = useAuth();

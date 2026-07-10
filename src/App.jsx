@@ -9,6 +9,13 @@ import NuevoGasto from './pages/operario/NuevoGasto.jsx';
 import ExpenseDetail from './pages/operario/ExpenseDetail.jsx';
 import MyAnticipos from './pages/operario/MyAnticipos.jsx';
 import MyReembolsos from './pages/operario/MyReembolsos.jsx';
+import ContabLayout from './pages/contab/ContabLayout.jsx';
+import Dashboard from './pages/contab/Dashboard.jsx';
+import ReviewQueue from './pages/contab/ReviewQueue.jsx';
+import ReviewDetail from './pages/contab/ReviewDetail.jsx';
+import Anticipos from './pages/contab/Anticipos.jsx';
+import Closures from './pages/contab/Closures.jsx';
+import SiigoPush from './pages/contab/SiigoPush.jsx';
 
 function RootRedirect() {
   const { loading, session, role } = useAuth();
@@ -46,7 +53,15 @@ export default function App() {
               <Route path="/reembolsos" element={<MyReembolsos />} />
             </Route>
 
-            <Route path="/rev" element={<ProtectedRoute roles={['contabilidad', 'admin']}><EnConstruccion rol="contabilidad" /></ProtectedRoute>} />
+            <Route element={<ProtectedRoute roles={['contabilidad', 'admin']}><ContabLayout /></ProtectedRoute>}>
+              <Route path="/c" element={<Dashboard />} />
+              <Route path="/c/revision" element={<ReviewQueue />} />
+              <Route path="/c/revision/:id" element={<ReviewDetail />} />
+              <Route path="/c/anticipos" element={<Anticipos />} />
+              <Route path="/c/cierres" element={<Closures />} />
+              <Route path="/c/siigo" element={<SiigoPush />} />
+            </Route>
+
             <Route path="/admin" element={<ProtectedRoute roles={['admin']}><EnConstruccion rol="admin" /></ProtectedRoute>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />

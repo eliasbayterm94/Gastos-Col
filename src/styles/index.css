@@ -1,0 +1,18 @@
+@import './fonts.css';
+@import './forest-design-system.css';
+@import './components.css';
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: var(--fc-font-body);
+  font-size: var(--fc-fs-16);
+  line-height: 1.5;
+  color: var(--fc-ink);
+  background: var(--fc-cream);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; }
+a { color: inherit; text-decoration: none; }

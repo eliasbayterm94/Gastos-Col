@@ -1,0 +1,223 @@
+/* ==========================================================================
+   Forest Gastos — component styles NOT in the base design system.
+   Rule: consume ONLY --fc-* tokens. No new colors, fonts, radii or shadows.
+   Optimized for one-handed field use: 48px+ touch targets, 16px inputs.
+   ========================================================================== */
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+.fc-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: var(--fc-space-4); }
+.fc-label {
+  font-family: var(--fc-font-body);
+  font-weight: var(--fc-fw-semibold);
+  font-size: var(--fc-fs-12);
+  letter-spacing: var(--fc-ls-loose);
+  color: var(--fc-ink-700);
+}
+.fc-label .req { color: var(--fc-danger); margin-left: 2px; }
+
+.fc-input, .fc-select, .fc-textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-family: var(--fc-font-body);
+  font-size: var(--fc-fs-16);            /* 16px: evita zoom en iOS */
+  color: var(--fc-ink);
+  background: var(--fc-paper);
+  border: 1px solid var(--fc-ink-200);
+  border-radius: var(--fc-radius-2);
+  transition: border-color var(--fc-dur-fast) var(--fc-ease-out),
+              box-shadow var(--fc-dur-fast) var(--fc-ease-out);
+  -webkit-appearance: none;
+  appearance: none;
+}
+.fc-textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
+.fc-input:focus, .fc-select:focus, .fc-textarea:focus {
+  outline: none;
+  border-color: var(--fc-navy);
+  box-shadow: 0 0 0 3px rgba(27,32,61,.12);
+}
+.fc-input.is-error, .fc-select.is-error, .fc-textarea.is-error {
+  border-color: var(--fc-danger);
+  box-shadow: 0 0 0 3px rgba(168,53,28,.10);
+}
+.fc-input:disabled, .fc-select:disabled { background: var(--fc-cream); color: var(--fc-ink-300); }
+.fc-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a5a55' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+.fc-input-mono { font-family: var(--fc-font-mono); letter-spacing: var(--fc-ls-tight); }
+.fc-error-text { font-size: var(--fc-fs-12); color: var(--fc-danger); }
+.fc-help-text { font-size: var(--fc-fs-12); color: var(--fc-ink-500); }
+
+/* Amount input with a fixed $ prefix */
+.fc-amount { position: relative; display: flex; align-items: center; }
+.fc-amount .prefix {
+  position: absolute; left: 14px;
+  font-family: var(--fc-font-mono); color: var(--fc-ink-500); font-size: var(--fc-fs-16);
+  pointer-events: none;
+}
+.fc-amount .fc-input { padding-left: 30px; font-family: var(--fc-font-mono); font-size: var(--fc-fs-20); }
+
+/* ── Buttons: full-width & block helpers ────────────────────────────────── */
+.fc-btn-block { width: 100%; }
+.fc-btn-lg { padding: 14px 20px; font-size: var(--fc-fs-14); min-height: 52px; }
+.fc-btn-danger { background: var(--fc-danger); color: #fff; }
+.fc-btn-danger:hover { background: #8f2d18; }
+.fc-btn:disabled { opacity: .5; pointer-events: none; }
+
+/* ── Status badges (semantic; never yellow) ─────────────────────────────── */
+.fc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--fc-radius-pill);
+  font-family: var(--fc-font-body);
+  font-weight: var(--fc-fw-semibold);
+  font-size: var(--fc-fs-11);
+  letter-spacing: var(--fc-ls-loose);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fc-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.fc-badge.borrador    { background: var(--fc-ink-100); color: var(--fc-ink-700); }
+.fc-badge.enviado     { background: var(--fc-blue-100); color: var(--fc-blue-900); }
+.fc-badge.en_revision { background: var(--fc-blue-100); color: var(--fc-blue-700); }
+.fc-badge.aprobado    { background: #e4f0d8; color: var(--fc-success); }
+.fc-badge.pagado      { background: var(--fc-success); color: #fff; }
+.fc-badge.rechazado   { background: var(--fc-danger-light); color: #6f2313; }
+.fc-badge.pendiente   { background: rgba(196,120,32,.16); color: #9c5e15; }
+
+/* Estado de anticipo */
+.fc-badge.activo    { background: #e4f0d8; color: var(--fc-success); }
+.fc-badge.liquidado { background: var(--fc-ink-100); color: var(--fc-ink-700); }
+.fc-badge.cerrado   { background: var(--fc-ink-100); color: var(--fc-ink-500); }
+
+/* ── List cards (expenses / anticipos / closures) ───────────────────────── */
+.fc-list { display: flex; flex-direction: column; gap: 10px; }
+.fc-row-card {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; text-align: left;
+  background: #fff;
+  border: 1px solid var(--fc-ink-100);
+  border-radius: var(--fc-radius-3);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: transform var(--fc-dur-fast) var(--fc-ease-out),
+              box-shadow var(--fc-dur-fast) var(--fc-ease-out);
+  font-family: inherit;
+}
+.fc-row-card:active { transform: scale(.99); }
+.fc-row-card:hover { box-shadow: var(--fc-shadow-2); }
+.fc-row-main { flex: 1; min-width: 0; }
+.fc-row-title {
+  font-family: var(--fc-font-body); font-weight: var(--fc-fw-semibold);
+  font-size: var(--fc-fs-14); color: var(--fc-ink); line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.fc-row-sub { font-size: var(--fc-fs-12); color: var(--fc-ink-500); margin-top: 2px; }
+.fc-row-amount {
+  font-family: var(--fc-font-mono); font-weight: var(--fc-fw-semibold);
+  font-size: var(--fc-fs-16); color: var(--fc-navy); letter-spacing: var(--fc-ls-tight);
+  text-align: right; white-space: nowrap;
+}
+.fc-row-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+/* ── Camera / file capture ──────────────────────────────────────────────── */
+.fc-capture {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; width: 100%; min-height: 128px;
+  background: var(--fc-cream);
+  border: 1.5px dashed var(--fc-ink-200);
+  border-radius: var(--fc-radius-3);
+  color: var(--fc-ink-500);
+  cursor: pointer; font-family: var(--fc-font-body); font-size: var(--fc-fs-12);
+  letter-spacing: var(--fc-ls-loose); text-transform: uppercase; font-weight: var(--fc-fw-semibold);
+  transition: border-color var(--fc-dur-fast), background var(--fc-dur-fast);
+}
+.fc-capture:hover { border-color: var(--fc-navy); background: #efeee7; }
+.fc-capture svg { width: 30px; height: 30px; stroke-width: 1.5; }
+.fc-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.fc-thumb {
+  position: relative; width: 72px; height: 72px; border-radius: var(--fc-radius-2);
+  overflow: hidden; border: 1px solid var(--fc-ink-100); background: var(--fc-ink-100);
+}
+.fc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.fc-thumb .rm {
+  position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+  background: rgba(12,12,11,.7); color: #fff; border: none; border-radius: 50%;
+  font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.fc-thumb .pending { position: absolute; inset: 0; background: rgba(196,120,32,.35); }
+
+/* ── Sheet / modal (bottom sheet on mobile, centered on desktop) ────────── */
+.fc-sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(12,12,11,.55); z-index: 200;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+@media (min-width: 768px) { .fc-sheet-backdrop { align-items: center; } }
+.fc-sheet {
+  background: #fff; width: 100%; max-width: 520px;
+  border-radius: var(--fc-radius-4) var(--fc-radius-4) 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+  max-height: 90vh; overflow-y: auto;
+}
+@media (min-width: 768px) { .fc-sheet { border-radius: var(--fc-radius-4); } }
+.fc-sheet-title {
+  font-family: var(--fc-font-display); font-weight: var(--fc-fw-bold);
+  font-size: var(--fc-fs-18); letter-spacing: var(--fc-ls-loose); text-transform: uppercase;
+  color: var(--fc-navy); margin-bottom: 4px;
+}
+
+/* ── FAB (nuevo gasto) ──────────────────────────────────────────────────── */
+.fc-fab {
+  position: fixed; right: 18px; bottom: calc(72px + env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 18px; background: var(--fc-yellow); color: var(--fc-navy);
+  border: none; border-radius: var(--fc-radius-pill); box-shadow: var(--fc-shadow-3);
+  font-family: var(--fc-font-body); font-weight: var(--fc-fw-bold); font-size: var(--fc-fs-14);
+  letter-spacing: var(--fc-ls-loose); cursor: pointer; z-index: 70;
+}
+.fc-fab svg { width: 20px; height: 20px; }
+@media (min-width: 768px) { .fc-fab { bottom: 24px; } }
+
+/* ── Misc: spinner, empty, toast, page header, filters ──────────────────── */
+.fc-spinner {
+  width: 22px; height: 22px; border: 2.5px solid var(--fc-ink-100);
+  border-top-color: var(--fc-navy); border-radius: 50%;
+  animation: fc-spin .7s linear infinite;
+}
+@keyframes fc-spin { to { transform: rotate(360deg); } }
+.fc-center-screen { min-height: 60vh; display: flex; align-items: center; justify-content: center; }
+
+.fc-empty { text-align: center; padding: 40px 20px; color: var(--fc-ink-500); }
+.fc-empty svg { width: 40px; height: 40px; margin-bottom: 12px; color: var(--fc-ink-300); }
+
+.fc-page-head { margin-bottom: var(--fc-space-6); }
+.fc-page-title {
+  font-family: var(--fc-font-display); font-weight: var(--fc-fw-bold);
+  font-size: var(--fc-fs-24); letter-spacing: var(--fc-ls-loose);
+  text-transform: uppercase; color: var(--fc-navy);
+}
+
+.fc-filters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: var(--fc-space-4); }
+.fc-chip {
+  flex-shrink: 0; padding: 7px 14px; border-radius: var(--fc-radius-pill);
+  background: #fff; border: 1px solid var(--fc-ink-200); color: var(--fc-ink-500);
+  font-family: var(--fc-font-body); font-size: var(--fc-fs-12); font-weight: var(--fc-fw-medium);
+  cursor: pointer; white-space: nowrap;
+}
+.fc-chip.active { background: var(--fc-navy); border-color: var(--fc-navy); color: #fff; }
+
+.fc-toast-wrap { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 300; display: flex; justify-content: center; pointer-events: none; }
+.fc-toast {
+  pointer-events: auto; max-width: 92%; padding: 12px 18px; border-radius: var(--fc-radius-2);
+  color: #fff; font-family: var(--fc-font-body); font-size: var(--fc-fs-14); box-shadow: var(--fc-shadow-3);
+}
+.fc-toast.ok { background: var(--fc-success); }
+.fc-toast.err { background: var(--fc-danger); }
+.fc-toast.info { background: var(--fc-navy); }
+
+.fc-divider { height: 1px; background: var(--fc-ink-100); margin: var(--fc-space-4) 0; }
+.fc-stack { display: flex; flex-direction: column; gap: var(--fc-space-4); }
+.fc-row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

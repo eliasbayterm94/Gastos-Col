@@ -35,8 +35,10 @@ export async function listUsers() {
     .select('id, email, nombre, rol, active, created_at').order('nombre');
   if (error) throw error; return data;
 }
-export async function createUser({ email, nombre, rol }) {
-  return callFunction('admin-create-user', { email, nombre, rol });
+export async function createUser({ email, nombre, rol, password }) {
+  const body = { email, nombre, rol };
+  if (password) body.password = password; // si va contraseña, se crea sin correo
+  return callFunction('admin-create-user', body);
 }
 export async function updateUser(id, patch) {
   const { error } = await supabase.from('users').update(patch).eq('id', id);

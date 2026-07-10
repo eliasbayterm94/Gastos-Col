@@ -1,0 +1,28 @@
+# Forest Gastos — Netlify configuration
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+  # Los archivos _lib/ y las utilidades compartidas se incluyen en el bundle.
+  included_files = ["src/lib/**"]
+
+# Resumen semanal de pendientes para contabilidad: lunes 8:00 (America/Bogota = 13:00 UTC)
+[functions."weekly-summary"]
+  schedule = "0 13 * * 1"
+
+# SPA: todo lo que no sea función o asset cae en index.html (React Router)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -5,9 +5,8 @@ de operaciones de origen de Forest Coffee SAS. Captura de soportes desde el
 celular, revisión y cierre por contabilidad, y push de documentos soporte a
 Siigo Nube.
 
-> Estado actual: **Fase 1 — Modelo de datos** (esquema Supabase + RLS + seed).
-> El backend (Netlify Functions) y el frontend (React PWA) llegan en fases
-> posteriores.
+> Estado actual: **Fase 2 — Backend** (RPCs de dominio + Netlify Functions).
+> El frontend (React PWA) llega en las fases 3–5.
 
 ## Decisiones de arquitectura (Fase 0, aprobadas)
 

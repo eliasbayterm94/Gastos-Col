@@ -16,24 +16,18 @@ import ReviewDetail from './pages/contab/ReviewDetail.jsx';
 import Anticipos from './pages/contab/Anticipos.jsx';
 import Closures from './pages/contab/Closures.jsx';
 import SiigoPush from './pages/contab/SiigoPush.jsx';
+import AdminLayout from './pages/admin/AdminLayout.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
+import Users from './pages/admin/Users.jsx';
+import Catalogs from './pages/admin/Catalogs.jsx';
+import Overrides from './pages/admin/Overrides.jsx';
+import AuditLog from './pages/admin/AuditLog.jsx';
 
 function RootRedirect() {
   const { loading, session, role } = useAuth();
   if (loading) return <Spinner full />;
   if (!session) return <Navigate to="/login" replace />;
   return <Navigate to={HOME_BY_ROLE[role] || '/gastos'} replace />;
-}
-
-// Placeholder para roles cuyo frontend llega en fases 4–5.
-function EnConstruccion({ rol }) {
-  const { signOut } = useAuth();
-  return (
-    <div className="fc-center-screen" style={{ flexDirection: 'column', gap: 16, padding: 24, textAlign: 'center' }}>
-      <div className="fc-h3">Módulo de {rol}</div>
-      <p className="fc-body-text">Esta sección se entrega en una fase próxima.</p>
-      <button className="fc-btn fc-btn-ghost" onClick={signOut}>Salir</button>
-    </div>
-  );
 }
 
 export default function App() {
@@ -62,7 +56,13 @@ export default function App() {
               <Route path="/c/siigo" element={<SiigoPush />} />
             </Route>
 
-            <Route path="/admin" element={<ProtectedRoute roles={['admin']}><EnConstruccion rol="admin" /></ProtectedRoute>} />
+            <Route element={<ProtectedRoute roles={['admin']}><AdminLayout /></ProtectedRoute>}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/usuarios" element={<Users />} />
+              <Route path="/admin/catalogos" element={<Catalogs />} />
+              <Route path="/admin/overrides" element={<Overrides />} />
+              <Route path="/admin/auditoria" element={<AuditLog />} />
+            </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

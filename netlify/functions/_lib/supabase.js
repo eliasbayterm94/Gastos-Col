@@ -11,6 +11,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Las Functions no usan Realtime, pero @supabase/supabase-js exige un WebSocket
+// al construir el cliente (falla en Node < 22 con "native WebSocket not found").
+// Le pasamos un transport no-op: nunca se instancia porque no abrimos canales.
+class NoopWebSocket {}
+const NO_REALTIME = { realtime: { transport: NoopWebSocket } };
+
 export function getBearerToken(event) {
   const h = event.headers?.authorization || event.headers?.Authorization || '';
   const m = /^Bearer\s+(.+)$/i.exec(h);
@@ -23,6 +29,7 @@ export function userClient(token) {
   return createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
+    ...NO_REALTIME,
   });
 }
 
@@ -31,6 +38,7 @@ export function serviceClient() {
   if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
   return createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
+    ...NO_REALTIME,
   });
 }
 

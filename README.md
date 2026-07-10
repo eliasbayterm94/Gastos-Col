@@ -5,61 +5,60 @@ de operaciones de origen de Forest Coffee SAS. Captura de soportes desde el
 celular, revisión y cierre por contabilidad, y push de documentos soporte a
 Siigo Nube.
 
-> Estado actual: **Fase 2 — Backend** (RPCs de dominio + Netlify Functions).
-> El frontend (React PWA) llega en las fases 3–5.
+> Estado: **MVP completo** (Fases 0–6). PWA operario + portales de contabilidad y
+> administración, con lógica de dominio y permisos aplicados en la base de datos.
 
-## Decisiones de arquitectura (Fase 0, aprobadas)
+## Decisiones de arquitectura (Fase 0)
 
 | Área | Decisión |
 |---|---|
-| Stack | Vite + React PWA (mobile-first) · Supabase (DB + Storage) · Netlify Functions · Tailwind mapeado a `forest-tokens.css` |
+| Stack | Vite + React PWA (mobile-first) · Supabase (DB + Storage + Auth) · Netlify Functions · Forest Design System (sin Tailwind) |
 | Auth | Supabase Auth — email + contraseña, usuarios provisionados por admin |
-| Extracción IA | Híbrido: entrada manual ahora, pre-llenado con Claude Vision después |
-| Siigo | Push por gasto (un documento soporte por gasto). Sin adjuntar archivo por API — Supabase Storage es la fuente de verdad del soporte. Clasificación contable (compra/gasto, retenciones) la define contabilidad al hacer push, en una fase posterior |
-| Roles | `usuario` · `contabilidad` · `admin`, aplicados por RLS a nivel de base de datos |
+| Extracción IA | Híbrido: entrada manual ahora, pre-llenado con Claude Vision después (detrás de flag) |
+| Siigo | Push por gasto. Sin adjuntar archivo por API — Supabase Storage es la fuente de verdad. Clasificación contable diferida |
+| Roles | `usuario` · `contabilidad` · `admin`, aplicados por **RLS** a nivel de base de datos |
 
-Ver [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) para el detalle del esquema, la
-máquina de estados y la matriz de permisos.
+## Documentación
+
+| Doc | Contenido |
+|---|---|
+| [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Esquema, máquina de estados, matriz de permisos |
+| [`docs/BACKEND.md`](docs/BACKEND.md) | RPCs de dominio y Netlify Functions |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Runbook de despliegue + variables de entorno |
+| [`docs/guia-operario.md`](docs/guia-operario.md) | Guía de una página — operario |
+| [`docs/guia-contabilidad.md`](docs/guia-contabilidad.md) | Guía de una página — contabilidad |
+| [`docs/guia-admin.md`](docs/guia-admin.md) | Guía de una página — administrador |
 
 ## Estructura
 
 ```
-supabase/
-  migrations/
-    0001_extensions_enums_helpers.sql   Extensiones, enums, funciones de rol
-    0002_core_tables.sql                Tablas
-    0003_functions_triggers.sql         Máquina de estados, bitácoras, integridad
-    0004_rls_policies.sql               Row Level Security por rol
-    0005_storage.sql                    Bucket 'soportes' y sus políticas
-  seed.sql                              Tipos, categorías, ubicaciones, admin
-docs/
-  DATA_MODEL.md                         Documentación del modelo de datos
-src/styles/                             (Fase 3) tokens de diseño Forest
+supabase/migrations/   0001..0007  esquema, triggers, RLS, storage, RPCs
+supabase/seed.sql                  tipos, categorías, ubicaciones, admin
+netlify/functions/                 siigo-push, notify-*, admin-create-user, extract-receipt
+netlify/functions/_lib/            helpers supabase / siigo / email
+src/
+  lib/        supabaseClient, AuthContext, api, contab, admin, money, image, format
+  components/ layout, sidebar, charts, ui (badges, toast, sheet), icons
+  pages/      Login · operario/* · contab/* · admin/*
+  styles/     forest-design-system.css + fonts (self-hosted) + components.css
+vite.config.js · netlify.toml · .env.example
 ```
 
-## Aplicar el esquema
-
-Con la [Supabase CLI](https://supabase.com/docs/guides/cli):
+## Desarrollo local
 
 ```bash
-supabase db reset                        # aplica migrations + seed en local
-# o contra un proyecto remoto:
-supabase link --project-ref <ref>
-supabase db push                         # aplica migrations
-psql "$DATABASE_URL" -f supabase/seed.sql # carga catálogos y promueve admin
+npm install
+cp .env.example .env          # completa VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+npm run dev                   # frontend
+npm test                      # pruebas de dinero (node --test, sin dependencias)
+npm run build                 # build de producción (dist/)
 ```
 
-> ⚠️ Confirmar antes de correr migraciones contra producción.
-
-### Bootstrap del primer admin
-
-1. El usuario `elias@forestcol.com` se registra (o lo crea el admin) en Supabase
-   Auth. El trigger `handle_new_user` crea su perfil con rol `usuario`.
-2. `seed.sql` lo promueve a `admin`. A partir de ahí, la gestión de usuarios se
-   hace desde la app (Fase 5).
+Para aplicar el esquema y desplegar, ver [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Convenciones
 
 - Montos en COP como **enteros** (`BIGINT`). Nunca floats en rutas de dinero.
 - Fechas en **America/Bogota** (validado en triggers).
 - Identificadores de código/tablas/variables en **inglés**; etiquetas de UI en **español**.
+- La **RLS es la fuente de verdad** de permisos; la UI solo oculta lo ya prohibido.

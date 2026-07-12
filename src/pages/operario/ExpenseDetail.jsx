@@ -66,6 +66,7 @@ export default function ExpenseDetail() {
       )}
 
       <Field label="Fecha del gasto" value={formatDate(exp.fecha_gasto)} />
+      {exp.client_regions?.nombre && <Field label="Región cliente" value={exp.client_regions.nombre} />}
       {exp.proveedor_nombre && <Field label="Proveedor" value={exp.proveedor_nombre} />}
       {exp.proveedor_nit && <Field label="NIT / Cédula" value={exp.proveedor_nit} mono />}
       {exp.locations?.nombre && <Field label="Ubicación" value={exp.locations.nombre} />}

@@ -1,56 +1,72 @@
 -- =============================================================================
--- Forest Gastos — Seed data
+-- Forest Gastos — Seed data (catálogos + bootstrap admin)
 -- =============================================================================
--- Idempotente: usa ON CONFLICT. Ejecutar tras las migraciones 0001–0005.
--- Los tipos/categorías/ubicaciones son ejemplos editables por el admin.
+-- Idempotente. Ejecutar tras las migraciones 0001–0008.
+-- Modelo orthogonal: TIPO (motivo del gasto) y CATEGORÍA (naturaleza) son
+-- listas independientes. ÁREA va en el usuario; REGIÓN de cliente en el gasto.
+-- Estrategia: se desactiva todo y se reactiva/inserta la lista vigente, de modo
+-- que re-ejecutarlo deja el catálogo exactamente como aquí definido.
 -- =============================================================================
 
--- ------------------------- Tipos de gasto (nivel superior) -------------------
-insert into public.expense_types (nombre, descripcion, sort_order) values
-  ('Viaje / Comisión',   'Gastos de desplazamiento a origen',            10),
-  ('Compra de café',     'Compra de café cereza, seco o pergamino',      20),
-  ('Trilladora',         'Gastos operativos de la trilladora',           30),
-  ('Análisis de calidad','Muestras, laboratorio y catación',             40),
-  ('Otros',              'Gastos varios no clasificados',                90)
-on conflict (nombre) do nothing;
+-- ── Áreas (perfil del usuario) ───────────────────────────────────────────────
+insert into public.areas (nombre, sort_order) values
+  ('Operaciones', 10), ('Ventas', 20), ('Mercadeo', 30), ('Administrativo', 40),
+  ('Contabilidad', 50), ('Logística', 60), ('Finca', 70)
+on conflict (nombre) do update set active = true, sort_order = excluded.sort_order;
 
--- ------------------------- Categorías (detalle por tipo) ---------------------
-insert into public.expense_categories (type_id, nombre, sort_order)
-select t.id, c.nombre, c.sort_order
-from (values
-  ('Viaje / Comisión',   'Transporte',              10),
-  ('Viaje / Comisión',   'Alimentación',            20),
-  ('Viaje / Comisión',   'Hospedaje',               30),
-  ('Viaje / Comisión',   'Combustible',             40),
-  ('Viaje / Comisión',   'Peajes',                  50),
-  ('Compra de café',     'Café cereza',             10),
-  ('Compra de café',     'Café seco / pergamino',   20),
-  ('Compra de café',     'Fletes de café',          30),
-  ('Trilladora',         'Insumos',                 10),
-  ('Trilladora',         'Mantenimiento',           20),
-  ('Trilladora',         'Servicios públicos',      30),
-  ('Trilladora',         'Mano de obra',            40),
-  ('Análisis de calidad','Muestras',                10),
-  ('Análisis de calidad','Laboratorio',             20),
-  ('Análisis de calidad','Envío de muestras',       30),
-  ('Otros',              'Papelería',               10),
-  ('Otros',              'Otros gastos',            90)
-) as c(tipo, nombre, sort_order)
-join public.expense_types t on t.nombre = c.tipo
-on conflict (type_id, nombre) do nothing;
+-- ── Regiones de cliente (gasto, opcional) ────────────────────────────────────
+insert into public.client_regions (nombre, sort_order) values
+  ('North America', 10), ('Europe', 20), ('UK', 30),
+  ('Middle East', 40), ('Australia', 50), ('Otros', 90)
+on conflict (nombre) do update set active = true, sort_order = excluded.sort_order;
 
--- ------------------------- Ubicaciones (ejemplos) ----------------------------
+-- ── Tipos de gasto = MOTIVO del viaje/gasto ──────────────────────────────────
+update public.expense_types set active = false;
+insert into public.expense_types (nombre, descripcion, sort_order, is_client) values
+  ('Compra de café',              'Viajes para comprar café',            10, false),
+  ('Visita a proveedores',        'Conocer y visitar proveedores',       20, false),
+  ('Control de calidad',          'Aprobación y análisis de cafés',      30, false),
+  ('Capacitación',                'Formación del equipo',                40, false),
+  ('Evento de café',              'Eventos de café en origen',           50, false),
+  ('Visita / evento con cliente', 'Visitas y eventos con clientes',      60, true),
+  ('Gasto operativo',             'Gastos operativos / administrativos', 70, false),
+  ('Otro',                        'Otros motivos',                       90, false)
+on conflict (nombre) do update
+  set active = true, descripcion = excluded.descripcion,
+      sort_order = excluded.sort_order, is_client = excluded.is_client;
+
+-- ── Categorías = NATURALEZA del gasto (independiente del tipo) ────────────────
+update public.expense_categories set active = false;
+insert into public.expense_categories (nombre, type_id, sort_order, active) values
+  ('Tiquetes aéreos',            null, 10,  true),
+  ('Transporte terrestre',       null, 20,  true),
+  ('Combustible',                null, 30,  true),
+  ('Peajes',                     null, 40,  true),
+  ('Alimentación',               null, 50,  true),
+  ('Hospedaje',                  null, 60,  true),
+  ('Compra de café (producto)',  null, 70,  true),
+  ('Material de mercadeo',       null, 80,  true),
+  ('Muestras y envíos',          null, 90,  true),
+  ('Inscripciones / entradas',   null, 100, true),
+  ('Papelería / varios',         null, 110, true),
+  ('Gasto Braseros',             null, 120, true),
+  ('Flete Empaque',              null, 130, true),
+  ('Descargue Café Finca',       null, 140, true),
+  ('Plantilla Sacos',            null, 150, true),
+  ('Otros',                      null, 900, true)
+on conflict (nombre) do update
+  set active = true, type_id = null, sort_order = excluded.sort_order;
+
+-- ── Ubicaciones (ejemplos; el admin las ajusta) ──────────────────────────────
 insert into public.locations (nombre, is_milling, descripcion) values
-  ('Oficina Bogotá',      false, 'Sede administrativa'),
-  ('Huila',               false, 'Región de origen'),
-  ('Nariño',              false, 'Región de origen'),
-  ('Tolima',              false, 'Región de origen'),
-  ('Trilladora Principal',true,  'Trilladora (dry mill)')
+  ('Oficina Bogotá',       false, 'Sede administrativa'),
+  ('Huila',                false, 'Región de origen'),
+  ('Nariño',               false, 'Región de origen'),
+  ('Tolima',               false, 'Región de origen'),
+  ('Trilladora Principal', true,  'Trilladora (dry mill)')
 on conflict (nombre) do nothing;
 
--- ------------------------- Bootstrap del primer admin ------------------------
--- El perfil se crea automáticamente al registrarse el usuario en Supabase Auth
--- (trigger handle_new_user). Este UPDATE lo promueve a admin cuando ya exista.
+-- ── Bootstrap del primer admin ───────────────────────────────────────────────
 update public.users
    set rol = 'admin', nombre = coalesce(nullif(nombre, ''), 'Elias'), active = true
  where email = 'elias@forestcol.com';

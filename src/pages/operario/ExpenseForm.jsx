@@ -5,7 +5,7 @@ import { useToast } from '../../components/ui.jsx';
 import { IcCamera, IcUpload, IcBack } from '../../components/Icons.jsx';
 import { bogotaToday, formatCOP, parseCOP } from '../../lib/format.js';
 import {
-  getTypes, getCategories, getLocations, listMyAnticipos,
+  getTypes, getCategories, getLocations, getRegions, listMyAnticipos,
   createExpense, updateExpense, uploadAttachment, removeAttachment, setExpenseStatus,
 } from '../../lib/api.js';
 
@@ -19,6 +19,7 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
   const [types, setTypes] = useState([]);
   const [cats, setCats] = useState([]);
   const [locs, setLocs] = useState([]);
+  const [regions, setRegions] = useState([]);
   const [anticipos, setAnticipos] = useState([]);
 
   const [typeId, setTypeId] = useState(existing?.type_id || '');
@@ -30,6 +31,7 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
   const [descripcion, setDescripcion] = useState(existing?.descripcion || '');
   const [anticipoId, setAnticipoId] = useState(existing?.anticipo_id || '');
   const [locationId, setLocationId] = useState(existing?.location_id || '');
+  const [regionId, setRegionId] = useState(existing?.client_region_id || '');
 
   const [pending, setPending] = useState([]);              // File[] aún no subidos (modo nuevo)
   const [uploaded, setUploaded] = useState(initialAttachments); // adjuntos ya en DB (modo editar)
@@ -43,13 +45,12 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
     getTypes().then(setTypes).catch(() => {});
     getCategories().then(setCats).catch(() => {});
     getLocations().then(setLocs).catch(() => {});
+    getRegions().then(setRegions).catch(() => {});
     if (user) listMyAnticipos(user.id).then((a) => setAnticipos(a.filter((x) => x.estado === 'activo'))).catch(() => {});
   }, [user]);
 
-  const catsForType = useMemo(
-    () => cats.filter((c) => !typeId || c.type_id === typeId),
-    [cats, typeId],
-  );
+  const selectedType = useMemo(() => types.find((t) => t.id === typeId), [types, typeId]);
+  const showRegion = Boolean(selectedType?.is_client);
   const monto = parseCOP(montoText);
 
   function addFiles(fileList) {
@@ -87,6 +88,7 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
         proveedor_nombre: proveedor || null, proveedor_nit: nit || null,
         descripcion: descripcion || null, anticipo_id: anticipoId || null,
         location_id: locationId || null,
+        client_region_id: showRegion ? (regionId || null) : null,
       };
       let id = existing?.id;
       if (isEdit) await updateExpense(id, fields);
@@ -187,24 +189,40 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
       </div>
 
       <div className="fc-field">
-        <label className="fc-label">Tipo <span className="req">*</span></label>
+        <label className="fc-label">Tipo de gasto <span className="req">*</span></label>
         <select className={`fc-select ${errors.typeId ? 'is-error' : ''}`} value={typeId}
-          onChange={(e) => { setTypeId(e.target.value); setCategoryId(''); }}>
+          onChange={(e) => {
+            const t = types.find((x) => x.id === e.target.value);
+            setTypeId(e.target.value);
+            if (!t?.is_client) setRegionId('');
+          }}>
           <option value="">Selecciona…</option>
           {types.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
         </select>
+        <div className="fc-help-text">¿Para qué fue el gasto?</div>
         {errors.typeId && <div className="fc-error-text">{errors.typeId}</div>}
       </div>
 
       <div className="fc-field">
         <label className="fc-label">Categoría <span className="req">*</span></label>
         <select className={`fc-select ${errors.categoryId ? 'is-error' : ''}`} value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)} disabled={!typeId}>
-          <option value="">{typeId ? 'Selecciona…' : 'Elige un tipo primero'}</option>
-          {catsForType.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          onChange={(e) => setCategoryId(e.target.value)}>
+          <option value="">Selecciona…</option>
+          {cats.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
+        <div className="fc-help-text">¿Qué se pagó?</div>
         {errors.categoryId && <div className="fc-error-text">{errors.categoryId}</div>}
       </div>
+
+      {showRegion && (
+        <div className="fc-field">
+          <label className="fc-label">Región del cliente</label>
+          <select className="fc-select" value={regionId} onChange={(e) => setRegionId(e.target.value)}>
+            <option value="">Sin especificar (opcional)</option>
+            {regions.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+          </select>
+        </div>
+      )}
 
       <div className="fc-field">
         <label className="fc-label">Fecha del gasto <span className="req">*</span></label>

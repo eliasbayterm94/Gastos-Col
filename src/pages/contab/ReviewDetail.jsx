@@ -76,6 +76,8 @@ export default function ReviewDetail() {
           </div>
 
           <Row label="Fecha" value={formatDate(exp.fecha_gasto)} />
+          {exp.users?.areas?.nombre && <Row label="Área" value={exp.users.areas.nombre} />}
+          {exp.client_regions?.nombre && <Row label="Región cliente" value={exp.client_regions.nombre} />}
           {exp.proveedor_nombre && <Row label="Proveedor" value={exp.proveedor_nombre} />}
           {exp.proveedor_nit && <Row label="NIT / Cédula" value={exp.proveedor_nit} mono />}
           {exp.locations?.nombre && <Row label="Ubicación" value={exp.locations.nombre} />}

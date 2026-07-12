@@ -4,12 +4,12 @@ import { compressImage } from './image.js';
 // ── Catálogos ───────────────────────────────────────────────────────────────
 export async function getTypes() {
   const { data, error } = await supabase
-    .from('expense_types').select('id, nombre').eq('active', true).order('sort_order');
+    .from('expense_types').select('id, nombre, is_client').eq('active', true).order('sort_order');
   if (error) throw error; return data;
 }
 export async function getCategories() {
   const { data, error } = await supabase
-    .from('expense_categories').select('id, nombre, type_id').eq('active', true).order('sort_order');
+    .from('expense_categories').select('id, nombre').eq('active', true).order('sort_order');
   if (error) throw error; return data;
 }
 export async function getLocations() {
@@ -17,13 +17,19 @@ export async function getLocations() {
     .from('locations').select('id, nombre, is_milling').eq('active', true).order('nombre');
   if (error) throw error; return data;
 }
+export async function getRegions() {
+  const { data, error } = await supabase
+    .from('client_regions').select('id, nombre').eq('active', true).order('sort_order');
+  if (error) throw error; return data;
+}
 
 // ── Gastos ───────────────────────────────────────────────────────────────────
 const EXPENSE_SELECT =
   'id, monto, fecha_gasto, descripcion, proveedor_nombre, proveedor_nit, estado, ' +
   'soporte_pendiente, motivo_rechazo, anticipo_id, type_id, category_id, location_id, ' +
-  'siigo_document_id, created_at, ' +
-  'expense_categories:category_id(nombre), expense_types:type_id(nombre), locations:location_id(nombre)';
+  'siigo_document_id, client_region_id, created_at, ' +
+  'expense_categories:category_id(nombre), expense_types:type_id(nombre), ' +
+  'locations:location_id(nombre), client_regions:client_region_id(nombre)';
 
 export async function listMyExpenses(userId, { estado } = {}) {
   let q = supabase.from('expenses').select(EXPENSE_SELECT).eq('user_id', userId)

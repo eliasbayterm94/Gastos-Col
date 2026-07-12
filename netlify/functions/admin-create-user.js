@@ -9,7 +9,7 @@ export const handlerFn = handler(async (event) => {
   if (event.httpMethod !== 'POST') throw httpError(405, 'Método no permitido');
   await requireUser(event, ['admin']);
 
-  const { email, nombre, rol = 'usuario', password } = JSON.parse(event.body || '{}');
+  const { email, nombre, rol = 'usuario', password, area_id } = JSON.parse(event.body || '{}');
   if (!email || !nombre) throw httpError(400, 'Faltan email y nombre');
   if (!VALID_ROLES.includes(rol)) throw httpError(400, 'Rol inválido');
 
@@ -31,11 +31,10 @@ export const handlerFn = handler(async (event) => {
     authUser = data.user;
   }
 
-  // El trigger handle_new_user ya creó el perfil con rol 'usuario'; fijamos rol/nombre.
-  const { error: upErr } = await svc
-    .from('users')
-    .update({ nombre, rol, active: true })
-    .eq('id', authUser.id);
+  // El trigger handle_new_user ya creó el perfil con rol 'usuario'; fijamos rol/nombre/área.
+  const patch = { nombre, rol, active: true };
+  if (area_id) patch.area_id = area_id;
+  const { error: upErr } = await svc.from('users').update(patch).eq('id', authUser.id);
   if (upErr) throw httpError(500, `Perfil no actualizado: ${upErr.message}`);
 
   return json(200, { id: authUser.id, email, nombre, rol, invited: !password });

@@ -32,13 +32,18 @@ export function aggregate(rows) {
 // ── Usuarios ─────────────────────────────────────────────────────────────────
 export async function listUsers() {
   const { data, error } = await supabase.from('users')
-    .select('id, email, nombre, rol, active, created_at').order('nombre');
+    .select('id, email, nombre, rol, active, area_id, created_at, areas:area_id(nombre)').order('nombre');
   if (error) throw error; return data;
 }
-export async function createUser({ email, nombre, rol, password }) {
+export async function createUser({ email, nombre, rol, password, area_id }) {
   const body = { email, nombre, rol };
   if (password) body.password = password; // si va contraseña, se crea sin correo
+  if (area_id) body.area_id = area_id;
   return callFunction('admin-create-user', body);
+}
+export async function listAreas() {
+  const { data, error } = await supabase.from('areas').select('id, nombre').eq('active', true).order('sort_order');
+  if (error) throw error; return data;
 }
 export async function updateUser(id, patch) {
   const { error } = await supabase.from('users').update(patch).eq('id', id);
@@ -58,9 +63,19 @@ export async function listLocationsAll() {
   const { data, error } = await supabase.from('locations').select('*').order('nombre');
   if (error) throw error; return data;
 }
+export async function listAreasAll() {
+  const { data, error } = await supabase.from('areas').select('*').order('sort_order');
+  if (error) throw error; return data;
+}
+export async function listRegionsAll() {
+  const { data, error } = await supabase.from('client_regions').select('*').order('sort_order');
+  if (error) throw error; return data;
+}
 export const upsertType = (row) => save('expense_types', row);
 export const upsertCategory = (row) => save('expense_categories', row);
 export const upsertLocation = (row) => save('locations', row);
+export const upsertArea = (row) => save('areas', row);
+export const upsertRegion = (row) => save('client_regions', row);
 async function save(table, row) {
   const { id, ...rest } = row;
   const q = id ? supabase.from(table).update(rest).eq('id', id) : supabase.from(table).insert(rest);

@@ -5,8 +5,9 @@ import { setExpenseStatus } from './api.js';
 const REVIEW_SELECT =
   'id, monto, fecha_gasto, descripcion, proveedor_nombre, proveedor_nit, estado, soporte_pendiente, ' +
   'anticipo_id, created_at, user_id, ' +
-  'users:user_id(nombre, email), expense_categories:category_id(nombre), expense_types:type_id(nombre), ' +
-  'locations:location_id(nombre), file_attachments(id)';
+  'users:user_id(nombre, email, areas:area_id(nombre)), expense_categories:category_id(nombre), ' +
+  'expense_types:type_id(nombre), locations:location_id(nombre), client_regions:client_region_id(nombre), ' +
+  'file_attachments(id)';
 
 export async function listReviewQueue() {
   const { data, error } = await supabase.from('expenses').select(REVIEW_SELECT)

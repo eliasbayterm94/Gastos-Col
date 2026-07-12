@@ -40,6 +40,15 @@ alter table public.expense_types
 -- ── Desacople tipo/categoría ─────────────────────────────────────────────────
 alter table public.expense_categories alter column type_id drop not null;
 alter table public.expense_categories drop constraint if exists expense_categories_type_id_nombre_key;
+-- Resolver posibles nombres duplicados antes del índice único (renombra, no borra;
+-- así no rompe FKs de gastos existentes).
+with d as (
+  select id, row_number() over (partition by nombre order by created_at, id) rn
+  from public.expense_categories
+)
+update public.expense_categories c
+   set nombre = c.nombre || ' (' || left(c.id::text, 4) || ')'
+  from d where d.id = c.id and d.rn > 1;
 create unique index if not exists uq_expense_categories_nombre on public.expense_categories (nombre);
 
 -- ── updated_at para las nuevas tablas ────────────────────────────────────────

@@ -48,6 +48,14 @@ export default function AppSidebarLayout({ nav, title = 'Forest Gastos', badge }
             <button className="fc-mobile-toggle" onClick={() => setOpen(true)} aria-label="Menú"><IcMenu /></button>
             <div className="fc-topbar-page-title">{title}</div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="fc-small" style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {profile?.nombre}
+            </span>
+            <button className="fc-btn fc-btn-ghost" onClick={doLogout} aria-label="Salir" style={{ padding: '8px 10px' }}>
+              <IcLogout size={16} />
+            </button>
+          </div>
         </div>
         <div className="fc-content">
           <Outlet />

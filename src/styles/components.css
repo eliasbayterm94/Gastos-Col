@@ -247,4 +247,11 @@
 
 .fc-divider { height: 1px; background: var(--fc-ink-100); margin: var(--fc-space-4) 0; }
 .fc-stack { display: flex; flex-direction: column; gap: var(--fc-space-4); }
+
+/* Móvil: el drawer usa la altura VISIBLE real (dvh), no 100vh, para que el pie
+   con "Salir" no quede detrás de la barra del navegador ni del home indicator. */
+@media (max-width: 1023px) {
+  .fc-sidebar { height: 100dvh; max-height: 100dvh; }
+  .fc-sidebar-footer { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+}
 .fc-row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

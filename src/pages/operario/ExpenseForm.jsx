@@ -42,12 +42,12 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
   const camRef = useRef(null);
 
   useEffect(() => {
-    getTypes().then(setTypes).catch(() => {});
-    getCategories().then(setCats).catch(() => {});
+    getTypes().then(setTypes).catch((e) => { console.error('getTypes', e); toast.show('No se pudieron cargar los tipos', 'err'); });
+    getCategories().then(setCats).catch((e) => { console.error('getCategories', e); toast.show('No se pudieron cargar las categorías', 'err'); });
     getLocations().then(setLocs).catch(() => {});
-    getRegions().then(setRegions).catch(() => {});
+    getRegions().then(setRegions).catch(() => {}); // opcional: silencioso
     if (user) listMyAnticipos(user.id).then((a) => setAnticipos(a.filter((x) => x.estado === 'activo'))).catch(() => {});
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedType = useMemo(() => types.find((t) => t.id === typeId), [types, typeId]);
   const showRegion = Boolean(selectedType?.is_client);

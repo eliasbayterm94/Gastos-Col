@@ -112,6 +112,38 @@ export async function listMyAnticipos(userId) {
   return (anticipos || []).map((a) => ({ ...a, balance: byId[a.id] || null }));
 }
 
+// Resumen del operario para la pantalla de inicio.
+export async function myDashboard(userId) {
+  const [{ data: exp, error }, anticipos] = await Promise.all([
+    supabase.from('expenses')
+      .select('id, monto, estado, fecha_gasto, soporte_pendiente, expense_categories:category_id(nombre)')
+      .eq('user_id', userId),
+    listMyAnticipos(userId),
+  ]);
+  if (error) throw error;
+  const rows = exp || [];
+  const sumBy = (pred) => rows.filter(pred).reduce((a, e) => a + e.monto, 0);
+  const countBy = (pred) => rows.filter(pred).length;
+  const enRev = (e) => e.estado === 'enviado' || e.estado === 'en_revision';
+  const activos = (anticipos || []).filter((a) => a.estado === 'activo');
+  const rechazados = rows
+    .filter((e) => e.estado === 'rechazado')
+    .sort((a, b) => (a.fecha_gasto < b.fecha_gasto ? 1 : -1));
+
+  return {
+    porReembolsarMonto: sumBy((e) => e.estado === 'aprobado'),
+    porReembolsarCount: countBy((e) => e.estado === 'aprobado'),
+    enRevisionMonto: sumBy(enRev),
+    enRevisionCount: countBy(enRev),
+    borradorCount: countBy((e) => e.estado === 'borrador'),
+    pagadoMonto: sumBy((e) => e.estado === 'pagado'),
+    rechazados,
+    anticiposActivos: activos.length,
+    anticipoSaldo: activos.reduce((a, x) => a + (x.balance?.saldo ?? x.monto), 0),
+    soportePendienteCount: countBy((e) => e.soporte_pendiente && (enRev(e) || e.estado === 'aprobado')),
+  };
+}
+
 export async function listMyClosures(userId) {
   const { data, error } = await supabase
     .from('reimbursement_closures')

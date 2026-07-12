@@ -1,8 +1,9 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
-import { IcList, IcWallet, IcReceipt, IcLogout } from './Icons.jsx';
+import { IcGrid, IcList, IcWallet, IcReceipt, IcLogout } from './Icons.jsx';
 
 const NAV = [
+  { to: '/resumen', label: 'Resumen', icon: IcGrid },
   { to: '/gastos', label: 'Gastos', icon: IcList },
   { to: '/anticipos', label: 'Anticipos', icon: IcWallet },
   { to: '/reembolsos', label: 'Reembolsos', icon: IcReceipt },
@@ -32,7 +33,7 @@ export default function OperarioLayout() {
       </div>
 
       <nav className="fc-bottom-nav" style={{ display: 'block' }}>
-        <div className="fc-bottom-nav-inner" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="fc-bottom-nav-inner" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {NAV.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => `fc-bottom-nav-btn${isActive ? ' active' : ''}`}>
               <Icon />

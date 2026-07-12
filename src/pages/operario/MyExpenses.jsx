@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import { listMyExpenses } from '../../lib/api.js';
 import { formatCOP, formatDate } from '../../lib/format.js';
@@ -19,7 +19,8 @@ const FILTERS = [
 export default function MyExpenses() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [estado, setEstado] = useState('');
+  const [searchParams] = useSearchParams();
+  const [estado, setEstado] = useState(searchParams.get('estado') || '');
   const [rows, setRows] = useState(null);
 
   useEffect(() => {

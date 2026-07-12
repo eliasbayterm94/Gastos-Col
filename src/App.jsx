@@ -4,6 +4,7 @@ import { ToastProvider, Spinner } from './components/ui.jsx';
 import ProtectedRoute, { HOME_BY_ROLE } from './components/ProtectedRoute.jsx';
 import OperarioLayout from './components/OperarioLayout.jsx';
 import Login from './pages/Login.jsx';
+import MyResumen from './pages/operario/MyResumen.jsx';
 import MyExpenses from './pages/operario/MyExpenses.jsx';
 import NuevoGasto from './pages/operario/NuevoGasto.jsx';
 import ExpenseDetail from './pages/operario/ExpenseDetail.jsx';
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/" element={<RootRedirect />} />
 
             <Route element={<ProtectedRoute roles={['usuario', 'admin']}><OperarioLayout /></ProtectedRoute>}>
+              <Route path="/resumen" element={<MyResumen />} />
               <Route path="/gastos" element={<MyExpenses />} />
               <Route path="/gastos/nuevo" element={<NuevoGasto />} />
               <Route path="/gastos/:id" element={<ExpenseDetail />} />

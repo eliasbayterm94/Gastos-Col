@@ -12,6 +12,11 @@ export default defineConfig({
         // Cachea el shell y las fuentes para uso offline en campo.
         globPatterns: ['**/*.{js,css,html,woff2,svg,png}'],
         navigateFallback: '/index.html',
+        // La versión nueva se activa de inmediato (no espera a cerrar pestañas):
+        // así, con solo RECARGAR, todo el equipo pasa a la última versión.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
       manifest: {
         name: 'Forest Gastos',

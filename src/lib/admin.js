@@ -4,27 +4,34 @@ import { callFunction } from './functions.js';
 // ── Estadísticas (agregación en cliente; volumen modesto para MVP) ───────────
 export async function fetchExpensesForStats() {
   const { data, error } = await supabase.from('expenses')
-    .select('monto, estado, fecha_gasto, expense_categories:category_id(nombre), users:user_id(nombre)');
+    .select('monto, estado, fecha_gasto, sin_soporte, ' +
+      'expense_categories:category_id(nombre), expense_types:type_id(nombre), ' +
+      'client_regions:client_region_id(nombre), users:user_id(nombre, areas:area_id(nombre))');
   if (error) throw error; return data || [];
 }
 
 export function aggregate(rows) {
-  const byCat = {}, byMonth = {}, byOperario = {}, byEstado = {};
-  let total = 0;
+  const byCat = {}, byMonth = {}, byOperario = {}, byEstado = {}, byArea = {}, byType = {}, byRegion = {};
+  let total = 0, sinFactura = 0;
+  const add = (obj, k, v) => { const key = k || '—'; obj[key] = (obj[key] || 0) + v; };
   for (const r of rows) {
     total += r.monto;
-    const cat = r.expense_categories?.nombre || 'Sin categoría';
-    const op = r.users?.nombre || '—';
+    if (r.sin_soporte) sinFactura += r.monto;
+    add(byCat, r.expense_categories?.nombre, r.monto);
+    add(byType, r.expense_types?.nombre, r.monto);
+    add(byArea, r.users?.areas?.nombre || 'Sin área', r.monto);
+    add(byOperario, r.users?.nombre, r.monto);
+    add(byEstado, r.estado, r.monto);
+    if (r.client_regions?.nombre) add(byRegion, r.client_regions.nombre, r.monto);
     const mes = (r.fecha_gasto || '').slice(0, 7);
-    byCat[cat] = (byCat[cat] || 0) + r.monto;
-    byOperario[op] = (byOperario[op] || 0) + r.monto;
-    byEstado[r.estado] = (byEstado[r.estado] || 0) + r.monto;
-    if (mes) byMonth[mes] = (byMonth[mes] || 0) + r.monto;
+    if (mes) add(byMonth, mes, r.monto);
   }
   const toSorted = (obj) => Object.entries(obj).map(([k, v]) => ({ k, v })).sort((a, b) => b.v - a.v);
   return {
-    total, count: rows.length,
-    byCat: toSorted(byCat), byOperario: toSorted(byOperario), byEstado: toSorted(byEstado),
+    total, count: rows.length, sinFactura,
+    avgTicket: rows.length ? Math.round(total / rows.length) : 0,
+    byCat: toSorted(byCat), byType: toSorted(byType), byArea: toSorted(byArea),
+    byOperario: toSorted(byOperario), byEstado: toSorted(byEstado), byRegion: toSorted(byRegion),
     byMonth: Object.entries(byMonth).map(([k, v]) => ({ k, v })).sort((a, b) => a.k.localeCompare(b.k)),
   };
 }

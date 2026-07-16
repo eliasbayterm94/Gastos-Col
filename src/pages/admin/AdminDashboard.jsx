@@ -49,16 +49,23 @@ export default function AdminDashboard() {
   const [all, setAll] = useState(null);
   const [period, setPeriod] = useState('anio');
   const [base, setBase] = useState('real');
+  const [area, setArea] = useState('');
 
   useEffect(() => { fetchExpensesForStats().then(setAll).catch(() => setAll([])); }, []);
+
+  const areaOptions = useMemo(() => {
+    const set = new Set((all || []).map((r) => r.users?.areas?.nombre).filter(Boolean));
+    return [...set].sort();
+  }, [all]);
 
   const stats = useMemo(() => {
     if (!all) return null;
     const estados = base === 'real' ? REAL : ENVIADOS;
     const pred = periodPredicate(period);
-    const rows = all.filter((r) => estados.includes(r.estado) && pred(r.fecha_gasto));
+    const rows = all.filter((r) => estados.includes(r.estado) && pred(r.fecha_gasto)
+      && (!area || r.users?.areas?.nombre === area));
     return aggregate(rows);
-  }, [all, period, base]);
+  }, [all, period, base, area]);
 
   if (!stats) return <Spinner full />;
 
@@ -77,6 +84,10 @@ export default function AdminDashboard() {
             <button key={p.key} className={`fc-chip${period === p.key ? ' active' : ''}`} onClick={() => setPeriod(p.key)}>{p.label}</button>
           ))}
         </div>
+        <select className="fc-select" style={{ width: 'auto' }} value={area} onChange={(e) => setArea(e.target.value)}>
+          <option value="">Todas las áreas</option>
+          {areaOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
         <select className="fc-select" style={{ width: 'auto' }} value={base} onChange={(e) => setBase(e.target.value)}>
           <option value="real">Aprobado + pagado</option>
           <option value="todos">Todos (incl. en revisión)</option>
@@ -99,7 +110,7 @@ export default function AdminDashboard() {
 
       {/* Desgloses */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-        <ChartCard title="Por área"><BarList data={stats.byArea} /></ChartCard>
+        {!area && <ChartCard title="Por área"><BarList data={stats.byArea} /></ChartCard>}
         <ChartCard title="Por tipo de gasto"><BarList data={stats.byType} /></ChartCard>
         <ChartCard title="Por categoría"><BarList data={stats.byCat.slice(0, 10)} /></ChartCard>
         <ChartCard title="Por operario (top 10)"><BarList data={stats.byOperario.slice(0, 10)} /></ChartCard>

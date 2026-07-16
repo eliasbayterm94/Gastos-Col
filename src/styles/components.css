@@ -249,6 +249,19 @@
 .fc-divider { height: 1px; background: var(--fc-ink-100); margin: var(--fc-space-4) 0; }
 .fc-stack { display: flex; flex-direction: column; gap: var(--fc-space-4); }
 
+/* Tooltip de gráficos (al pasar el mouse sobre una barra) */
+.fc-hasttip { position: relative; }
+.fc-hasttip .fc-ttip {
+  position: absolute; bottom: 100%; left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: var(--fc-navy); color: #fff; padding: 6px 10px;
+  border-radius: var(--fc-radius-2); font-size: var(--fc-fs-12); white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity var(--fc-dur-fast) var(--fc-ease-out);
+  box-shadow: var(--fc-shadow-3); z-index: 50;
+}
+.fc-hasttip:hover .fc-ttip { opacity: 1; }
+.fc-hasttip:hover .fc-bar-fill { filter: brightness(1.35); }
+
 /* Móvil: el drawer usa la altura VISIBLE real (dvh), no 100vh, para que el pie
    con "Salir" no quede detrás de la barra del navegador ni del home indicator. */
 @media (max-width: 1023px) {

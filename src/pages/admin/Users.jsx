@@ -11,6 +11,7 @@ export default function Users() {
   const [rows, setRows] = useState(null);
   const [areas, setAreas] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const load = () => { setRows(null); listUsers().then(setRows).catch(() => setRows([])); };
   useEffect(() => { load(); listAreas().then(setAreas).catch(() => {}); }, []);
@@ -32,7 +33,10 @@ export default function Users() {
     <div>
       <div className="fc-row-between" style={{ marginBottom: 'var(--fc-space-5)' }}>
         <div><div className="fc-eyebrow">Administrador</div><div className="fc-page-title">Usuarios</div></div>
-        <button className="fc-btn fc-btn-primary" onClick={() => setCreating(true)}><IcPlus size={16} /> Nuevo usuario</button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="fc-btn fc-btn-ghost" onClick={() => setImporting(true)}>Importar varios</button>
+          <button className="fc-btn fc-btn-primary" onClick={() => setCreating(true)}><IcPlus size={16} /> Nuevo usuario</button>
+        </div>
       </div>
 
       {rows === null ? <Spinner full /> : (
@@ -71,7 +75,76 @@ export default function Users() {
       )}
 
       {creating && <NewUser areas={areas} onClose={() => setCreating(false)} onDone={() => { setCreating(false); load(); toast.show('Usuario creado', 'ok'); }} />}
+      {importing && <BulkImport areas={areas} onClose={() => setImporting(false)} onDone={() => { setImporting(false); load(); }} />}
     </div>
+  );
+}
+
+// Importar varios: pega una línea por usuario -> Nombre, correo, cédula, [rol], [área]
+function BulkImport({ areas, onClose, onDone }) {
+  const toast = useToast();
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [results, setResults] = useState(null);
+
+  function parse() {
+    const areaByName = Object.fromEntries(areas.map((a) => [a.nombre.toLowerCase(), a.id]));
+    return text.split('\n').map((raw) => raw.trim()).filter(Boolean).map((line) => {
+      const p = line.split(/[,\t;]/).map((s) => s.trim());
+      const [nombre, email, cedula, rolRaw, areaRaw] = p;
+      const rol = ['usuario', 'contabilidad', 'admin'].includes((rolRaw || '').toLowerCase()) ? rolRaw.toLowerCase() : 'usuario';
+      const area_id = areaRaw ? areaByName[areaRaw.toLowerCase()] : undefined;
+      return { nombre, email, cedula, rol, area_id, areaRaw };
+    });
+  }
+  const parsed = parse();
+  const valid = parsed.filter((r) => r.nombre && r.email && r.cedula && r.cedula.length >= 6);
+
+  async function run() {
+    setBusy(true);
+    const out = [];
+    for (const r of valid) {
+      try {
+        await createUser({ email: r.email, nombre: r.nombre, rol: r.rol, password: r.cedula, area_id: r.area_id });
+        out.push({ email: r.email, ok: true });
+      } catch (e) { out.push({ email: r.email, ok: false, msg: e.message }); }
+    }
+    setResults(out); setBusy(false);
+    const ok = out.filter((o) => o.ok).length;
+    toast.show(`${ok}/${out.length} usuarios creados`, ok === out.length ? 'ok' : 'err');
+    if (ok > 0) onDone();
+  }
+
+  return (
+    <Sheet title="Importar varios usuarios" onClose={onClose}>
+      <div className="fc-help-text" style={{ marginBottom: 8 }}>
+        Una línea por usuario: <strong>Nombre, correo, cédula, [rol], [área]</strong>.<br />
+        La contraseña será la cédula. Rol y área son opcionales (rol por defecto: operario).
+      </div>
+      <div className="fc-field">
+        <textarea className="fc-textarea" style={{ minHeight: 140, fontFamily: 'var(--fc-font-mono)', fontSize: 13 }}
+          placeholder={'Juan Pérez, juan@forestcol.com, 1012345678, usuario, Operaciones\nAna Gómez, ana@forestcol.com, 1098765432, contabilidad'}
+          value={text} onChange={(e) => setText(e.target.value)} />
+      </div>
+      {parsed.length > 0 && (
+        <div className="fc-help-text" style={{ marginBottom: 10 }}>
+          {valid.length} válido(s) de {parsed.length} línea(s).{valid.length < parsed.length && ' Revisa que cada línea tenga nombre, correo y cédula (≥6 dígitos).'}
+        </div>
+      )}
+      {results && (
+        <div className="fc-table-wrap" style={{ marginBottom: 10, maxHeight: 160, overflowY: 'auto' }}>
+          <table className="fc-table"><tbody>
+            {results.map((o) => (
+              <tr key={o.email}><td className="fc-td-mono">{o.email}</td>
+                <td>{o.ok ? '✅' : `❌ ${o.msg}`}</td></tr>
+            ))}
+          </tbody></table>
+        </div>
+      )}
+      <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy || !valid.length} onClick={run}>
+        {busy ? 'Creando…' : `Crear ${valid.length} usuario(s)`}
+      </button>
+    </Sheet>
   );
 }
 

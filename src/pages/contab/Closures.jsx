@@ -1,150 +1,198 @@
 import { useEffect, useMemo, useState } from 'react';
-import { listOperarios, listApprovedUnpaid, listActiveAnticiposFor, createClosure } from '../../lib/contab.js';
+import {
+  listClosureCandidates, createClosureAuto, listAllClosures,
+} from '../../lib/contab.js';
 import { callFunction } from '../../lib/functions.js';
-import { closurePreview } from '../../lib/money.js';
+import { toCSV, downloadCSV, copyTSV } from '../../lib/exportTable.js';
 import { formatCOP, formatDate, SALDO_LABEL, METODO_LABEL } from '../../lib/format.js';
-import { Spinner, EmptyState, useToast } from '../../components/ui.jsx';
+import { Spinner, EmptyState, Sheet, useToast } from '../../components/ui.jsx';
 import { IcReceipt } from '../../components/Icons.jsx';
 
+const PAY_HEADERS = [
+  { key: 'nombre', label: 'Nombre' },
+  { key: 'email', label: 'Correo' },
+  { key: 'aPagar', label: 'Valor a pagar' },
+];
+
 export default function Closures() {
-  const toast = useToast();
-  const [operarios, setOperarios] = useState([]);
-  const [userId, setUserId] = useState('');
-  const [expenses, setExpenses] = useState([]);
-  const [anticipos, setAnticipos] = useState([]);
-  const [selected, setSelected] = useState({});      // id -> bool
-  const [anticipoId, setAnticipoId] = useState('');
-  const [metodo, setMetodo] = useState('transferencia');
-  const [obs, setObs] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => { listOperarios().then(setOperarios).catch(() => {}); }, []);
-
-  async function pickOperario(uid) {
-    setUserId(uid); setAnticipoId(''); setObs('');
-    if (!uid) { setExpenses([]); setAnticipos([]); setSelected({}); return; }
-    setLoading(true);
-    try {
-      const [exp, ant] = await Promise.all([listApprovedUnpaid(uid), listActiveAnticiposFor(uid)]);
-      setExpenses(exp); setAnticipos(ant);
-      setSelected(Object.fromEntries(exp.map((e) => [e.id, true])));
-    } finally { setLoading(false); }
-  }
-
-  const chosen = useMemo(() => expenses.filter((e) => selected[e.id]), [expenses, selected]);
-  const anticipoMonto = anticipoId ? (anticipos.find((a) => a.id === anticipoId)?.monto ?? null) : null;
-  const preview = chosen.length ? closurePreview(chosen.map((e) => ({ monto: e.monto })), anticipoMonto) : null;
-  const sinFactura = chosen.filter((e) => e.sin_soporte).reduce((a, e) => a + e.monto, 0);
-  const conFactura = (preview?.totalGastos || 0) - sinFactura;
-
-  async function confirm() {
-    if (!chosen.length) return toast.show('Selecciona al menos un gasto', 'err');
-    setBusy(true);
-    try {
-      const closure = await createClosure({
-        user_id: userId, expense_ids: chosen.map((e) => e.id),
-        anticipo_id: anticipoId || null, metodo_pago: metodo, observaciones: obs,
-      });
-      // Notificación al operario (best-effort; EMAIL_DRY_RUN por defecto).
-      try { await callFunction('notify-closure', { closure_id: closure.id }); } catch { /* ignore */ }
-      toast.show('Cierre creado', 'ok');
-      pickOperario(userId);
-    } catch (e) { toast.show(e.message, 'err'); }
-    finally { setBusy(false); }
-  }
-
+  const [tab, setTab] = useState('por_cerrar');
   return (
     <div>
       <div className="fc-eyebrow">Contabilidad</div>
-      <div className="fc-page-title" style={{ marginBottom: 'var(--fc-space-5)' }}>Cierres</div>
-
-      <div className="fc-field" style={{ maxWidth: 360 }}>
-        <label className="fc-label">Operario</label>
-        <select className="fc-select" value={userId} onChange={(e) => pickOperario(e.target.value)}>
-          <option value="">Selecciona…</option>
-          {operarios.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
-        </select>
+      <div className="fc-page-title" style={{ marginBottom: 'var(--fc-space-4)' }}>Cierres</div>
+      <div className="fc-filters">
+        <button className={`fc-chip${tab === 'por_cerrar' ? ' active' : ''}`} onClick={() => setTab('por_cerrar')}>Por cerrar</button>
+        <button className={`fc-chip${tab === 'historial' ? ' active' : ''}`} onClick={() => setTab('historial')}>Historial de cierres</button>
       </div>
-
-      {!userId ? (
-        <EmptyState icon={<IcReceipt size={40} />} title="Elige un operario" sub="Para ver sus gastos aprobados por cerrar." />
-      ) : loading ? <Spinner full />
-        : (
-          <div className="fc-review-grid">
-            <div>
-              <div className="fc-eyebrow" style={{ marginBottom: 8 }}>Gastos aprobados sin cerrar</div>
-              {expenses.length === 0 ? <div className="fc-help-text">No hay gastos aprobados pendientes.</div>
-                : (
-                  <div className="fc-list">
-                    {expenses.map((e) => (
-                      <label className="fc-row-card" key={e.id} style={{ cursor: 'pointer' }}>
-                        <input type="checkbox" checked={!!selected[e.id]}
-                          onChange={() => setSelected((s) => ({ ...s, [e.id]: !s[e.id] }))}
-                          style={{ width: 20, height: 20 }} />
-                        <div className="fc-row-main">
-                          <div className="fc-row-title">{e.expense_categories?.nombre}{e.sin_soporte ? ' · sin factura' : ''}</div>
-                          <div className="fc-row-sub">{formatDate(e.fecha_gasto)}{e.anticipo_id ? ' · con anticipo' : ''}</div>
-                        </div>
-                        <div className="fc-row-amount">{formatCOP(e.monto)}</div>
-                      </label>
-                    ))}
-                  </div>
-                )}
-            </div>
-
-            {/* Resumen del cierre */}
-            <div>
-              <div className="fc-eyebrow" style={{ marginBottom: 8 }}>Resumen del cierre</div>
-              <div className="fc-stat-card">
-                <div className="fc-field">
-                  <label className="fc-label">Liquidar anticipo</label>
-                  <select className="fc-select" value={anticipoId} onChange={(e) => setAnticipoId(e.target.value)}>
-                    <option value="">Sin anticipo</option>
-                    {anticipos.map((a) => <option key={a.id} value={a.id}>{formatCOP(a.monto)} — {a.descripcion || formatDate(a.fecha)}</option>)}
-                  </select>
-                </div>
-
-                <div className="fc-divider" />
-                <SumRow label="Con factura" value={formatCOP(conFactura)} />
-                <SumRow label="Sin factura" value={formatCOP(sinFactura)} />
-                <SumRow label="Total gastos" value={formatCOP(preview?.totalGastos || 0)} />
-                <SumRow label="Anticipo aplicado" value={formatCOP(preview?.anticipoAplicado || 0)} />
-                <SumRow label="Saldo" value={formatCOP(preview?.saldo || 0)} strong />
-                {preview && (
-                  <div className={`fc-badge ${preview.direccion === 'a_favor_operario' ? 'aprobado' : preview.direccion === 'a_favor_forest' ? 'pendiente' : 'liquidado'}`}
-                    style={{ marginTop: 10 }}>
-                    {SALDO_LABEL[preview.direccion]}
-                  </div>
-                )}
-
-                <div className="fc-field" style={{ marginTop: 16 }}>
-                  <label className="fc-label">Método de pago</label>
-                  <select className="fc-select" value={metodo} onChange={(e) => setMetodo(e.target.value)}>
-                    {Object.entries(METODO_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-                <div className="fc-field">
-                  <label className="fc-label">Observaciones</label>
-                  <textarea className="fc-textarea" value={obs} onChange={(e) => setObs(e.target.value)} />
-                </div>
-
-                <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy || !chosen.length} onClick={confirm}>
-                  {busy ? 'Cerrando…' : `Cerrar ${chosen.length} gasto(s)`}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+      {tab === 'por_cerrar' ? <PorCerrar /> : <Historial />}
     </div>
   );
 }
 
-function SumRow({ label, value, strong }) {
+function PorCerrar() {
+  const toast = useToast();
+  const [rows, setRows] = useState(null);
+  const [sel, setSel] = useState({});
+  const [preview, setPreview] = useState(false);
+  const [metodo, setMetodo] = useState('transferencia');
+  const [busy, setBusy] = useState(false);
+
+  const load = () => { setRows(null); setSel({}); listClosureCandidates().then(setRows).catch(() => setRows([])); };
+  useEffect(load, []);
+
+  const chosen = useMemo(() => (rows || []).filter((r) => sel[r.user_id]), [rows, sel]);
+  const payRows = chosen.map((c) => ({ nombre: c.nombre, email: c.email, aPagar: Math.max(0, c.saldo), saldo: c.saldo }));
+  const totalPagar = payRows.reduce((a, r) => a + r.aPagar, 0);
+  const allChecked = rows && rows.length > 0 && chosen.length === rows.length;
+
+  async function confirm() {
+    setBusy(true);
+    let ok = 0;
+    for (const c of chosen) {
+      try {
+        const cl = await createClosureAuto(c.user_id, metodo, null);
+        ok += 1;
+        try { await callFunction('notify-closure', { closure_id: cl.id }); } catch { /* best-effort */ }
+      } catch (e) { toast.show(`${c.nombre}: ${e.message}`, 'err'); }
+    }
+    setBusy(false); setPreview(false);
+    toast.show(`${ok} cierre(s) generado(s)`, 'ok');
+    load();
+  }
+
+  const exportRows = () =>
+    payRows.map((r) => ({ nombre: r.nombre, email: r.email, aPagar: r.aPagar }));
+
+  if (rows === null) return <Spinner full />;
+  if (rows.length === 0) {
+    return <EmptyState icon={<IcReceipt size={40} />} title="Nada por cerrar" sub="No hay operarios con gastos aprobados pendientes." />;
+  }
+
   return (
-    <div className="fc-row-between" style={{ padding: '6px 0' }}>
-      <span className="fc-small">{label}</span>
-      <span className="fc-mono" style={{ fontWeight: strong ? 700 : 500, fontSize: strong ? 18 : 14 }}>{value}</span>
+    <div>
+      <div className="fc-toolbar">
+        <span className="fc-small">{chosen.length} seleccionado(s)</span>
+        <button className="fc-btn fc-btn-primary" disabled={!chosen.length} onClick={() => setPreview(true)}>
+          Generar cierre ({chosen.length})
+        </button>
+      </div>
+
+      <div className="fc-table-wrap">
+        <table className="fc-table">
+          <thead>
+            <tr>
+              <th style={{ width: 36 }}>
+                <input type="checkbox" checked={allChecked}
+                  onChange={(e) => setSel(e.target.checked ? Object.fromEntries(rows.map((r) => [r.user_id, true])) : {})}
+                  style={{ width: 18, height: 18 }} />
+              </th>
+              <th>Operario</th><th>Anticipo</th><th># Gastos</th><th>Sin factura</th>
+              <th>Total gastos</th><th>A pagar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.user_id}>
+                <td><input type="checkbox" checked={!!sel[r.user_id]}
+                  onChange={() => setSel((s) => ({ ...s, [r.user_id]: !s[r.user_id] }))} style={{ width: 18, height: 18 }} /></td>
+                <td>{r.nombre}</td>
+                <td className="fc-td-mono">{r.anticipo_total > 0 ? formatCOP(r.anticipo_total) : '—'}</td>
+                <td className="fc-td-mono">{r.n_gastos}</td>
+                <td className="fc-td-mono">{r.n_sin_factura || '—'}</td>
+                <td className="fc-td-mono">{formatCOP(r.total_gastos)}</td>
+                <td className="fc-td-mono" style={{ color: r.saldo < 0 ? 'var(--fc-danger)' : 'var(--fc-success)' }}>
+                  {r.saldo < 0 ? `Devuelve ${formatCOP(-r.saldo)}` : formatCOP(r.saldo)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {preview && (
+        <Sheet title="Resumen del cierre" onClose={() => setPreview(false)}>
+          <div className="fc-table-wrap" style={{ marginBottom: 14 }}>
+            <table className="fc-table">
+              <thead><tr><th>Operario</th><th>Valor a pagar</th></tr></thead>
+              <tbody>
+                {payRows.map((r) => (
+                  <tr key={r.email}>
+                    <td>{r.nombre}</td>
+                    <td className="fc-td-mono">{r.saldo < 0 ? `Devuelve ${formatCOP(-r.saldo)}` : formatCOP(r.aPagar)}</td>
+                  </tr>
+                ))}
+                <tr><td style={{ fontWeight: 700 }}>Total a pagar</td>
+                  <td className="fc-td-mono" style={{ fontWeight: 700 }}>{formatCOP(totalPagar)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+            <button className="fc-btn fc-btn-ghost" style={{ flex: 1 }}
+              onClick={() => downloadCSV('pagos_cierre.csv', toCSV(exportRows(), PAY_HEADERS))}>
+              Descargar CSV
+            </button>
+            <button className="fc-btn fc-btn-ghost" style={{ flex: 1 }}
+              onClick={() => copyTSV(exportRows(), PAY_HEADERS).then(() => toast.show('Copiado', 'ok'))}>
+              Copiar tabla
+            </button>
+          </div>
+
+          <div className="fc-field">
+            <label className="fc-label">Método de pago</label>
+            <select className="fc-select" value={metodo} onChange={(e) => setMetodo(e.target.value)}>
+              {Object.entries(METODO_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+
+          <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy} onClick={confirm}>
+            {busy ? 'Cerrando…' : `Confirmar y cerrar ${chosen.length} operario(s)`}
+          </button>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+function Historial() {
+  const toast = useToast();
+  const [rows, setRows] = useState(null);
+  useEffect(() => { listAllClosures().then(setRows).catch(() => setRows([])); }, []);
+
+  if (rows === null) return <Spinner full />;
+  if (rows.length === 0) return <EmptyState icon={<IcReceipt size={40} />} title="Sin cierres" sub="Aún no se han generado cierres." />;
+
+  const exportAll = () => {
+    const headers = [
+      { key: 'nombre', label: 'Operario' }, { key: 'fecha', label: 'Fecha' },
+      { key: 'total', label: 'Total gastos' }, { key: 'saldo', label: 'Saldo' },
+    ];
+    const data = rows.map((c) => ({ nombre: c.users?.nombre, fecha: c.fecha, total: c.total_gastos, saldo: c.saldo }));
+    downloadCSV('historial_cierres.csv', toCSV(data, headers));
+  };
+
+  return (
+    <div>
+      <div className="fc-toolbar">
+        <button className="fc-btn fc-btn-ghost" onClick={exportAll}>Descargar CSV</button>
+      </div>
+      <div className="fc-table-wrap">
+        <table className="fc-table">
+          <thead><tr><th>Fecha</th><th>Operario</th><th>Total</th><th>Anticipo</th><th>Saldo</th><th>Resultado</th></tr></thead>
+          <tbody>
+            {rows.map((c) => (
+              <tr key={c.id}>
+                <td className="fc-td-mono">{formatDate(c.fecha)}</td>
+                <td>{c.users?.nombre}{c.reopened ? ' · (reabierto)' : ''}</td>
+                <td className="fc-td-mono">{formatCOP(c.total_gastos)}</td>
+                <td className="fc-td-mono">{c.anticipo_aplicado > 0 ? formatCOP(c.anticipo_aplicado) : '—'}</td>
+                <td className="fc-td-mono">{formatCOP(c.saldo)}</td>
+                <td className="fc-small">{SALDO_LABEL[c.saldo_direccion]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

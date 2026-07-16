@@ -87,6 +87,42 @@ export async function createClosure({ user_id, expense_ids, anticipo_id, metodo_
   return Array.isArray(data) ? data[0] : data;
 }
 
+// ── Cierre por lote ──────────────────────────────────────────────────────────
+export async function listClosureCandidates() {
+  const { data, error } = await supabase.from('closure_candidates')
+    .select('user_id, nombre, email, n_gastos, n_sin_factura, total_gastos, anticipo_total, saldo')
+    .order('nombre');
+  if (error) throw error; return data;
+}
+export async function createClosureAuto(userId, metodo = 'transferencia', obs = null) {
+  const { data, error } = await supabase.rpc('create_closure_auto', {
+    p_user_id: userId, p_metodo_pago: metodo, p_observaciones: obs,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+export async function listAllClosures() {
+  const { data, error } = await supabase.from('reimbursement_closures')
+    .select('id, fecha, total_gastos, anticipo_aplicado, saldo, saldo_direccion, metodo_pago, observaciones, reopened, created_at, users:user_id(nombre, email)')
+    .order('created_at', { ascending: false });
+  if (error) throw error; return data;
+}
+
+// ── Historial de gastos (aprobados/rechazados/pagados) + recuperar ───────────
+export async function listExpenseHistory(estado) {
+  let q = supabase.from('expenses')
+    .select('id, monto, fecha_gasto, estado, motivo_rechazo, sin_soporte, created_at, users:user_id(nombre), expense_categories:category_id(nombre)')
+    .in('estado', ['aprobado', 'rechazado', 'pagado'])
+    .order('created_at', { ascending: false }).limit(500);
+  if (estado) q = q.eq('estado', estado);
+  const { data, error } = await q;
+  if (error) throw error; return data;
+}
+/** Recuperar un gasto rechazado (por error): vuelve a la cola de revisión. */
+export async function recoverExpense(id) {
+  await setExpenseStatus(id, 'enviado', 'Recuperado por contabilidad');
+}
+
 // ── Siigo ────────────────────────────────────────────────────────────────────
 export async function listPushable() {
   const { data, error } = await supabase.from('expenses')

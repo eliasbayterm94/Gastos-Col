@@ -16,6 +16,7 @@ import ReviewQueue from './pages/contab/ReviewQueue.jsx';
 import ReviewDetail from './pages/contab/ReviewDetail.jsx';
 import Anticipos from './pages/contab/Anticipos.jsx';
 import Closures from './pages/contab/Closures.jsx';
+import History from './pages/contab/History.jsx';
 import SiigoPush from './pages/contab/SiigoPush.jsx';
 import AdminLayout from './pages/admin/AdminLayout.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="/c" element={<Dashboard />} />
               <Route path="/c/revision" element={<ReviewQueue />} />
               <Route path="/c/revision/:id" element={<ReviewDetail />} />
+              <Route path="/c/historial" element={<History />} />
               <Route path="/c/anticipos" element={<Anticipos />} />
               <Route path="/c/cierres" element={<Closures />} />
               <Route path="/c/siigo" element={<SiigoPush />} />

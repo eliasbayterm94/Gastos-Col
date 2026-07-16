@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import { listMyExpenses } from '../../lib/api.js';
@@ -21,14 +21,19 @@ export default function MyExpenses() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [estado, setEstado] = useState(searchParams.get('estado') || '');
-  const [rows, setRows] = useState(null);
+  const [all, setAll] = useState(null);
 
   useEffect(() => {
     if (!user) return;
-    setRows(null);
-    listMyExpenses(user.id, { estado: estado || undefined })
-      .then(setRows).catch(() => setRows([]));
-  }, [user, estado]);
+    listMyExpenses(user.id).then(setAll).catch(() => setAll([]));
+  }, [user]);
+
+  const counts = useMemo(() => {
+    const c = {};
+    for (const e of all || []) c[e.estado] = (c[e.estado] || 0) + 1;
+    return c;
+  }, [all]);
+  const rows = all === null ? null : (estado ? all.filter((e) => e.estado === estado) : all);
 
   return (
     <div>
@@ -37,11 +42,14 @@ export default function MyExpenses() {
       </div>
 
       <div className="fc-filters">
-        {FILTERS.map((f) => (
-          <button key={f.key} className={`fc-chip${estado === f.key ? ' active' : ''}`} onClick={() => setEstado(f.key)}>
-            {f.label}
-          </button>
-        ))}
+        {FILTERS.map((f) => {
+          const n = f.key === '' ? (all?.length || 0) : (counts[f.key] || 0);
+          return (
+            <button key={f.key} className={`fc-chip${estado === f.key ? ' active' : ''}`} onClick={() => setEstado(f.key)}>
+              {f.label}{n > 0 ? ` (${n})` : ''}
+            </button>
+          );
+        })}
       </div>
 
       {rows === null ? <Spinner full />

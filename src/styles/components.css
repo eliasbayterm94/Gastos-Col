@@ -87,6 +87,7 @@
 .fc-badge.pagado      { background: var(--fc-success); color: #fff; }
 .fc-badge.rechazado   { background: var(--fc-danger-light); color: #6f2313; }
 .fc-badge.pendiente   { background: rgba(196,120,32,.16); color: #9c5e15; }
+.fc-badge.sin_factura { background: var(--fc-blue-100); color: var(--fc-blue-900); }
 
 /* Estado de anticipo */
 .fc-badge.activo    { background: #e4f0d8; color: var(--fc-success); }

@@ -26,7 +26,7 @@ export async function getRegions() {
 // ── Gastos ───────────────────────────────────────────────────────────────────
 const EXPENSE_SELECT =
   'id, monto, fecha_gasto, descripcion, proveedor_nombre, proveedor_nit, estado, ' +
-  'soporte_pendiente, motivo_rechazo, anticipo_id, type_id, category_id, location_id, ' +
+  'soporte_pendiente, sin_soporte, sin_soporte_motivo, motivo_rechazo, anticipo_id, type_id, category_id, location_id, ' +
   'siigo_document_id, client_region_id, created_at, ' +
   'expense_categories:category_id(nombre), expense_types:type_id(nombre), ' +
   'locations:location_id(nombre), client_regions:client_region_id(nombre)';
@@ -65,6 +65,12 @@ export async function createExpense(payload) {
 
 export async function updateExpense(id, patch) {
   const { error } = await supabase.from('expenses').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+/** Elimina un gasto no cruzado (dueño/contabilidad). RLS + trigger lo gobiernan. */
+export async function deleteExpense(id) {
+  const { error } = await supabase.from('expenses').delete().eq('id', id);
   if (error) throw error;
 }
 

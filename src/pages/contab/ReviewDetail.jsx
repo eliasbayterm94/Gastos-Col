@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReviewExpense, approveExpense, rejectExpense } from '../../lib/contab.js';
-import { getAttachments, getStatusLog, signedUrl } from '../../lib/api.js';
+import { getAttachments, getStatusLog, signedUrl, deleteExpense } from '../../lib/api.js';
 import { formatCOP, formatDate, formatDateTime, ESTADO_LABEL } from '../../lib/format.js';
-import { StatusBadge, PendienteBadge, Spinner, Sheet, useToast } from '../../components/ui.jsx';
+import { StatusBadge, PendienteBadge, SinFacturaBadge, Spinner, Sheet, useToast } from '../../components/ui.jsx';
 import { IcBack } from '../../components/Icons.jsx';
+import ExpenseForm from '../operario/ExpenseForm.jsx';
 
 export default function ReviewDetail() {
   const { id } = useParams();
@@ -17,6 +18,8 @@ export default function ReviewDetail() {
   const [rejecting, setRejecting] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   async function load() {
     const e = await getReviewExpense(id); setExp(e);
@@ -28,6 +31,13 @@ export default function ReviewDetail() {
   useEffect(() => { load().catch(() => toast.show('No se pudo cargar', 'err')); /* eslint-disable-next-line */ }, [id]);
 
   if (!exp) return <Spinner full />;
+  if (editing) return <ExpenseForm existing={exp} initialAttachments={atts} returnTo="/c/revision" />;
+
+  async function remove() {
+    setBusy(true);
+    try { await deleteExpense(exp.id); toast.show('Gasto eliminado', 'ok'); navigate('/c/revision'); }
+    catch (e) { toast.show(e.message, 'err'); setBusy(false); }
+  }
 
   async function approve() {
     setBusy(true);
@@ -48,7 +58,8 @@ export default function ReviewDetail() {
           <IcBack size={16} /> Volver
         </button>
         <div style={{ display: 'flex', gap: 6 }}>
-          {exp.soporte_pendiente && <PendienteBadge />}
+          {exp.sin_soporte && <SinFacturaBadge />}
+          {exp.soporte_pendiente && !exp.sin_soporte && <PendienteBadge />}
           <StatusBadge estado={exp.estado} />
         </div>
       </div>
@@ -58,7 +69,11 @@ export default function ReviewDetail() {
         <div>
           <div className="fc-eyebrow" style={{ marginBottom: 8 }}>Soporte</div>
           <div className="fc-soporte-viewer">
-            {atts.length === 0 && <div className="fc-help-text" style={{ padding: 20, textAlign: 'center' }}>Sin soporte adjunto — pendiente por contabilidad.</div>}
+            {atts.length === 0 && (
+              <div className="fc-help-text" style={{ padding: 20, textAlign: 'center' }}>
+                {exp.sin_soporte ? `Sin factura (declarado): ${exp.sin_soporte_motivo}` : 'Sin soporte adjunto — pendiente por contabilidad.'}
+              </div>
+            )}
             {atts.map((a) => (
               a.mime_type?.startsWith('image/') && urls[a.id]
                 ? <img key={a.id} src={urls[a.id]} alt={a.file_name} />
@@ -84,6 +99,8 @@ export default function ReviewDetail() {
           {exp.anticipo_id && <Row label="Vinculado a" value="Anticipo" />}
           {exp.descripcion && <Row label="Descripción" value={exp.descripcion} />}
 
+          {exp.sin_soporte && <Row label="Sin factura — motivo" value={exp.sin_soporte_motivo} />}
+
           <div className="fc-stack" style={{ marginTop: 20 }}>
             <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy} onClick={approve}>
               Aprobar
@@ -91,6 +108,14 @@ export default function ReviewDetail() {
             <button className="fc-btn fc-btn-danger fc-btn-block" disabled={busy} onClick={() => setRejecting(true)}>
               Rechazar / Solicitar corrección
             </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="fc-btn fc-btn-ghost" style={{ flex: 1 }} disabled={busy} onClick={() => setEditing(true)}>
+                Editar / agregar soporte
+              </button>
+              <button className="fc-btn fc-btn-ghost" style={{ flex: 1 }} disabled={busy} onClick={() => setConfirmDel(true)}>
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -117,6 +142,20 @@ export default function ReviewDetail() {
               {busy ? 'Enviando…' : 'Rechazar con este motivo'}
             </button>
             <button className="fc-btn fc-btn-ghost fc-btn-block" onClick={() => setRejecting(false)}>Cancelar</button>
+          </div>
+        </Sheet>
+      )}
+
+      {confirmDel && (
+        <Sheet title="Eliminar gasto" onClose={() => setConfirmDel(false)}>
+          <p className="fc-body-text" style={{ marginBottom: 16 }}>
+            ¿Eliminar el gasto de {formatCOP(exp.monto)} de {exp.users?.nombre}? Queda registrado en auditoría.
+          </p>
+          <div className="fc-stack">
+            <button className="fc-btn fc-btn-danger fc-btn-block fc-btn-lg" disabled={busy} onClick={remove}>
+              {busy ? 'Eliminando…' : 'Sí, eliminar'}
+            </button>
+            <button className="fc-btn fc-btn-ghost fc-btn-block" onClick={() => setConfirmDel(false)}>Cancelar</button>
           </div>
         </Sheet>
       )}

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getExpense, getAttachments, getStatusLog, signedUrl } from '../../lib/api.js';
+import { getExpense, getAttachments, getStatusLog, signedUrl, deleteExpense } from '../../lib/api.js';
 import { formatCOP, formatDate, formatDateTime, ESTADO_LABEL } from '../../lib/format.js';
-import { StatusBadge, PendienteBadge, Spinner } from '../../components/ui.jsx';
+import { StatusBadge, PendienteBadge, SinFacturaBadge, Spinner, Sheet, useToast } from '../../components/ui.jsx';
 import { IcBack } from '../../components/Icons.jsx';
 import ExpenseForm from './ExpenseForm.jsx';
 
@@ -14,6 +14,9 @@ export default function ExpenseDetail() {
   const [urls, setUrls] = useState({});
   const [log, setLog] = useState([]);
   const [editing, setEditing] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   async function load() {
     const e = await getExpense(id);
@@ -27,9 +30,17 @@ export default function ExpenseDetail() {
 
   if (!exp) return <Spinner full />;
 
-  const editable = ['borrador', 'rechazado'].includes(exp.estado);
+  // Editable/eliminable mientras NO esté cruzado (pagado o enviado a Siigo).
+  const crossed = exp.estado === 'pagado' || !!exp.siigo_document_id;
+  const editable = !crossed;
   if (editing) {
     return <ExpenseForm existing={exp} initialAttachments={atts} />;
+  }
+
+  async function remove() {
+    setBusy(true);
+    try { await deleteExpense(exp.id); toast.show('Gasto eliminado', 'ok'); navigate('/gastos', { replace: true }); }
+    catch (e) { toast.show(e.message, 'err'); setBusy(false); }
   }
 
   return (
@@ -46,7 +57,8 @@ export default function ExpenseDetail() {
         <div className="fc-row-between" style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <StatusBadge estado={exp.estado} />
-            {exp.soporte_pendiente && ['enviado', 'en_revision'].includes(exp.estado) && <PendienteBadge />}
+            {exp.sin_soporte && <SinFacturaBadge />}
+            {exp.soporte_pendiente && !exp.sin_soporte && ['enviado', 'en_revision'].includes(exp.estado) && <PendienteBadge />}
           </div>
           {exp.siigo_document_id && <span className="fc-caption fc-mono">Siigo #{exp.siigo_document_id}</span>}
         </div>
@@ -67,6 +79,7 @@ export default function ExpenseDetail() {
 
       <Field label="Fecha del gasto" value={formatDate(exp.fecha_gasto)} />
       {exp.client_regions?.nombre && <Field label="Región cliente" value={exp.client_regions.nombre} />}
+      {exp.sin_soporte && <Field label="Sin factura — motivo" value={exp.sin_soporte_motivo} />}
       {exp.proveedor_nombre && <Field label="Proveedor" value={exp.proveedor_nombre} />}
       {exp.proveedor_nit && <Field label="NIT / Cédula" value={exp.proveedor_nit} mono />}
       {exp.locations?.nombre && <Field label="Ubicación" value={exp.locations.nombre} />}
@@ -104,9 +117,26 @@ export default function ExpenseDetail() {
       {editable && (
         <div className="fc-stack" style={{ marginTop: 24 }}>
           <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" onClick={() => setEditing(true)}>
-            {exp.estado === 'rechazado' ? 'Corregir y reenviar' : 'Editar'}
+            {exp.estado === 'rechazado' ? 'Corregir y reenviar' : 'Editar / agregar soporte'}
+          </button>
+          <button className="fc-btn fc-btn-danger fc-btn-block" onClick={() => setConfirmDel(true)}>
+            Eliminar gasto
           </button>
         </div>
+      )}
+
+      {confirmDel && (
+        <Sheet title="Eliminar gasto" onClose={() => setConfirmDel(false)}>
+          <p className="fc-body-text" style={{ marginBottom: 16 }}>
+            ¿Seguro que quieres eliminar este gasto de {formatCOP(exp.monto)}? Esta acción queda registrada.
+          </p>
+          <div className="fc-stack">
+            <button className="fc-btn fc-btn-danger fc-btn-block fc-btn-lg" disabled={busy} onClick={remove}>
+              {busy ? 'Eliminando…' : 'Sí, eliminar'}
+            </button>
+            <button className="fc-btn fc-btn-ghost fc-btn-block" onClick={() => setConfirmDel(false)}>Cancelar</button>
+          </div>
+        </Sheet>
       )}
     </div>
   );

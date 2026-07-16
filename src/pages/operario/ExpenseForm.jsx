@@ -10,7 +10,7 @@ import {
 } from '../../lib/api.js';
 
 // existing = null (nuevo) | expense (editar/reenviar). initialAttachments para editar.
-export default function ExpenseForm({ existing = null, initialAttachments = [] }) {
+export default function ExpenseForm({ existing = null, initialAttachments = [], returnTo = '/gastos' }) {
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -32,6 +32,10 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
   const [anticipoId, setAnticipoId] = useState(existing?.anticipo_id || '');
   const [locationId, setLocationId] = useState(existing?.location_id || '');
   const [regionId, setRegionId] = useState(existing?.client_region_id || '');
+  const [sinSoporte, setSinSoporte] = useState(existing?.sin_soporte || false);
+  const [sinMotivo, setSinMotivo] = useState(existing?.sin_soporte_motivo || '');
+
+  const ownerId = existing?.user_id || user?.id; // contabilidad puede editar gasto ajeno
 
   const [pending, setPending] = useState([]);              // File[] aún no subidos (modo nuevo)
   const [uploaded, setUploaded] = useState(initialAttachments); // adjuntos ya en DB (modo editar)
@@ -46,8 +50,8 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
     getCategories().then(setCats).catch((e) => { console.error('getCategories', e); toast.show('No se pudieron cargar las categorías', 'err'); });
     getLocations().then(setLocs).catch(() => {});
     getRegions().then(setRegions).catch(() => {}); // opcional: silencioso
-    if (user) listMyAnticipos(user.id).then((a) => setAnticipos(a.filter((x) => x.estado === 'activo'))).catch(() => {});
-  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (ownerId) listMyAnticipos(ownerId).then((a) => setAnticipos(a.filter((x) => x.estado === 'activo'))).catch(() => {});
+  }, [ownerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const selectedType = useMemo(() => types.find((t) => t.id === typeId), [types, typeId]);
   const showRegion = Boolean(selectedType?.is_client);
@@ -68,6 +72,9 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
     catch { toast.show('No se pudo eliminar el soporte', 'err'); }
   }
 
+  // Editar un gasto ya enviado/en revisión/aprobado (no borrador ni rechazado).
+  const isSubmittedEdit = isEdit && !['borrador', 'rechazado'].includes(existing?.estado);
+
   function validate() {
     const e = {};
     if (!typeId) e.typeId = 'Selecciona un tipo';
@@ -75,6 +82,7 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
     if (!monto || monto <= 0) e.monto = 'Ingresa un monto mayor a 0';
     if (!fecha) e.fecha = 'Ingresa la fecha';
     else if (fecha > bogotaToday()) e.fecha = 'La fecha no puede ser futura';
+    if (sinSoporte && !sinMotivo.trim()) e.sinMotivo = 'Indica por qué no hay factura';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -89,24 +97,26 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
         descripcion: descripcion || null, anticipo_id: anticipoId || null,
         location_id: locationId || null,
         client_region_id: showRegion ? (regionId || null) : null,
+        sin_soporte: sinSoporte,
+        sin_soporte_motivo: sinSoporte ? sinMotivo.trim() : null,
       };
       let id = existing?.id;
       if (isEdit) await updateExpense(id, fields);
-      else id = await createExpense({ ...fields, user_id: user.id, estado: 'borrador' });
+      else id = await createExpense({ ...fields, user_id: ownerId, estado: 'borrador' });
 
       // Subir soportes pendientes (nunca perder una foto: si falla, no continúa).
       for (const file of pending) await uploadAttachment(id, file, user.id);
 
       const totalSoportes = uploaded.length + pending.length;
-      await updateExpense(id, { soporte_pendiente: totalSoportes === 0 });
+      await updateExpense(id, { soporte_pendiente: totalSoportes === 0 && !sinSoporte });
 
       if (enviar) {
         await setExpenseStatus(id, 'enviado', isEdit ? 'Reenviado tras corrección' : null);
         toast.show('Gasto enviado', 'ok');
       } else {
-        toast.show('Borrador guardado', 'ok');
+        toast.show(isSubmittedEdit ? 'Cambios guardados' : 'Borrador guardado', 'ok');
       }
-      navigate('/gastos', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (err) {
       toast.show(err.message || 'No se pudo guardar', 'err');
       setBusy(false);
@@ -172,6 +182,21 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
       <div className="fc-help-text" style={{ marginTop: 6 }}>
         El soporte es opcional; si no lo adjuntas, contabilidad lo marcará como pendiente.
       </div>
+
+      {/* Declarar que no hay factura */}
+      <label className="fc-field" style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, marginBottom: 8 }}>
+        <input type="checkbox" checked={sinSoporte} onChange={(e) => setSinSoporte(e.target.checked)} style={{ width: 20, height: 20 }} />
+        <span className="fc-label" style={{ margin: 0 }}>Este gasto no tiene factura / soporte</span>
+      </label>
+      {sinSoporte && (
+        <div className="fc-field">
+          <label className="fc-label">¿Por qué no hay factura? <span className="req">*</span></label>
+          <textarea className={`fc-textarea ${errors.sinMotivo ? 'is-error' : ''}`} value={sinMotivo}
+            onChange={(e) => setSinMotivo(e.target.value)}
+            placeholder="Ej: propina, transporte informal, guardado de equipaje…" />
+          {errors.sinMotivo && <div className="fc-error-text">{errors.sinMotivo}</div>}
+        </div>
+      )}
 
       <div className="fc-divider" />
 
@@ -273,12 +298,20 @@ export default function ExpenseForm({ existing = null, initialAttachments = [] }
       </div>
 
       <div className="fc-stack" style={{ marginTop: 8 }}>
-        <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy} onClick={() => save(true)}>
-          {busy ? 'Guardando…' : 'Enviar'}
-        </button>
-        <button className="fc-btn fc-btn-ghost fc-btn-block" disabled={busy} onClick={() => save(false)}>
-          Guardar borrador
-        </button>
+        {isSubmittedEdit ? (
+          <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy} onClick={() => save(false)}>
+            {busy ? 'Guardando…' : 'Guardar cambios'}
+          </button>
+        ) : (
+          <>
+            <button className="fc-btn fc-btn-primary fc-btn-block fc-btn-lg" disabled={busy} onClick={() => save(true)}>
+              {busy ? 'Guardando…' : 'Enviar'}
+            </button>
+            <button className="fc-btn fc-btn-ghost fc-btn-block" disabled={busy} onClick={() => save(false)}>
+              Guardar borrador
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

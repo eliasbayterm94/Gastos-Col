@@ -35,6 +35,8 @@ export default function Closures() {
   const chosen = useMemo(() => expenses.filter((e) => selected[e.id]), [expenses, selected]);
   const anticipoMonto = anticipoId ? (anticipos.find((a) => a.id === anticipoId)?.monto ?? null) : null;
   const preview = chosen.length ? closurePreview(chosen.map((e) => ({ monto: e.monto })), anticipoMonto) : null;
+  const sinFactura = chosen.filter((e) => e.sin_soporte).reduce((a, e) => a + e.monto, 0);
+  const conFactura = (preview?.totalGastos || 0) - sinFactura;
 
   async function confirm() {
     if (!chosen.length) return toast.show('Selecciona al menos un gasto', 'err');
@@ -81,7 +83,7 @@ export default function Closures() {
                           onChange={() => setSelected((s) => ({ ...s, [e.id]: !s[e.id] }))}
                           style={{ width: 20, height: 20 }} />
                         <div className="fc-row-main">
-                          <div className="fc-row-title">{e.expense_categories?.nombre}</div>
+                          <div className="fc-row-title">{e.expense_categories?.nombre}{e.sin_soporte ? ' · sin factura' : ''}</div>
                           <div className="fc-row-sub">{formatDate(e.fecha_gasto)}{e.anticipo_id ? ' · con anticipo' : ''}</div>
                         </div>
                         <div className="fc-row-amount">{formatCOP(e.monto)}</div>
@@ -104,6 +106,8 @@ export default function Closures() {
                 </div>
 
                 <div className="fc-divider" />
+                <SumRow label="Con factura" value={formatCOP(conFactura)} />
+                <SumRow label="Sin factura" value={formatCOP(sinFactura)} />
                 <SumRow label="Total gastos" value={formatCOP(preview?.totalGastos || 0)} />
                 <SumRow label="Anticipo aplicado" value={formatCOP(preview?.anticipoAplicado || 0)} />
                 <SumRow label="Saldo" value={formatCOP(preview?.saldo || 0)} strong />

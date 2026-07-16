@@ -15,6 +15,10 @@ export function PendienteBadge() {
   return <span className="fc-badge pendiente">Soporte pendiente</span>;
 }
 
+export function SinFacturaBadge() {
+  return <span className="fc-badge sin_factura">Sin factura</span>;
+}
+
 export function EmptyState({ icon, title, sub }) {
   return (
     <div className="fc-empty">

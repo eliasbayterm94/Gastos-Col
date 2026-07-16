@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listReviewQueue, bulkApprove } from '../../lib/contab.js';
 import { formatCOP, formatDate, parseCOP } from '../../lib/format.js';
-import { StatusBadge, PendienteBadge, Spinner, EmptyState, Sheet, useToast } from '../../components/ui.jsx';
+import { StatusBadge, PendienteBadge, SinFacturaBadge, Spinner, EmptyState, Sheet, useToast } from '../../components/ui.jsx';
 import { IcInbox } from '../../components/Icons.jsx';
 
 const THKEY = 'fc_bulk_threshold';
@@ -63,7 +63,8 @@ export default function ReviewQueue() {
                   <div className="fc-row-right">
                     <div className="fc-row-amount">{formatCOP(e.monto)}</div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      {e.soporte_pendiente && <PendienteBadge />}
+                      {e.sin_soporte && <SinFacturaBadge />}
+                      {e.soporte_pendiente && !e.sin_soporte && <PendienteBadge />}
                       <StatusBadge estado={e.estado} />
                     </div>
                   </div>

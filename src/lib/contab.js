@@ -4,6 +4,7 @@ import { setExpenseStatus } from './api.js';
 // ── Cola de revisión ─────────────────────────────────────────────────────────
 const REVIEW_SELECT =
   'id, monto, fecha_gasto, descripcion, proveedor_nombre, proveedor_nit, estado, soporte_pendiente, ' +
+  'sin_soporte, sin_soporte_motivo, siigo_document_id, type_id, category_id, location_id, client_region_id, ' +
   'anticipo_id, created_at, user_id, ' +
   'users:user_id(nombre, email, areas:area_id(nombre)), expense_categories:category_id(nombre), ' +
   'expense_types:type_id(nombre), locations:location_id(nombre), client_regions:client_region_id(nombre), ' +
@@ -65,7 +66,7 @@ export async function listAnticiposWithBalances() {
 // ── Cierres ──────────────────────────────────────────────────────────────────
 export async function listApprovedUnpaid(userId) {
   const { data, error } = await supabase.from('expenses')
-    .select('id, monto, fecha_gasto, descripcion, anticipo_id, expense_categories:category_id(nombre)')
+    .select('id, monto, fecha_gasto, descripcion, anticipo_id, sin_soporte, expense_categories:category_id(nombre)')
     .eq('user_id', userId).eq('estado', 'aprobado').is('closure_id', null)
     .order('fecha_gasto');
   if (error) throw error; return data;

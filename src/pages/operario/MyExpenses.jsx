@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../lib/AuthContext.jsx';
 import { listMyExpenses } from '../../lib/api.js';
 import { formatCOP, formatDate } from '../../lib/format.js';
-import { StatusBadge, PendienteBadge, Spinner, EmptyState } from '../../components/ui.jsx';
+import { StatusBadge, PendienteBadge, SinFacturaBadge, Spinner, EmptyState } from '../../components/ui.jsx';
 import { IcPlus, IcInbox } from '../../components/Icons.jsx';
 
 const FILTERS = [
@@ -60,7 +60,8 @@ export default function MyExpenses() {
                 <div className="fc-row-right">
                   <div className="fc-row-amount">{formatCOP(e.monto)}</div>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {e.soporte_pendiente && ['enviado', 'en_revision'].includes(e.estado) && <PendienteBadge />}
+                    {e.sin_soporte && <SinFacturaBadge />}
+                    {e.soporte_pendiente && !e.sin_soporte && ['enviado', 'en_revision'].includes(e.estado) && <PendienteBadge />}
                     <StatusBadge estado={e.estado} />
                   </div>
                 </div>

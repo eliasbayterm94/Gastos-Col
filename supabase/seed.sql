@@ -9,9 +9,10 @@
 -- =============================================================================
 
 -- ── Áreas (perfil del usuario) ───────────────────────────────────────────────
+update public.areas set nombre = 'Marketing' where nombre = 'Mercadeo';
 insert into public.areas (nombre, sort_order) values
-  ('Operaciones', 10), ('Ventas', 20), ('Mercadeo', 30), ('Administrativo', 40),
-  ('Contabilidad', 50), ('Logística', 60), ('Finca', 70)
+  ('Operaciones', 10), ('Ventas', 20), ('Marketing', 30), ('Calidad', 35),
+  ('Administrativo', 40), ('Contabilidad', 50), ('Logística', 60), ('Finca', 70)
 on conflict (nombre) do update set active = true, sort_order = excluded.sort_order;
 
 -- ── Regiones de cliente (gasto, opcional) ────────────────────────────────────

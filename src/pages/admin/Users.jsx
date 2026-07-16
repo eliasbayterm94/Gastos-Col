@@ -88,12 +88,13 @@ function BulkImport({ areas, onClose, onDone }) {
   const [results, setResults] = useState(null);
 
   function parse() {
-    const areaByName = Object.fromEntries(areas.map((a) => [a.nombre.toLowerCase(), a.id]));
+    const norm = (s) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const areaByName = Object.fromEntries(areas.map((a) => [norm(a.nombre), a.id]));
     return text.split('\n').map((raw) => raw.trim()).filter(Boolean).map((line) => {
       const p = line.split(/[,\t;]/).map((s) => s.trim());
       const [nombre, email, cedula, rolRaw, areaRaw] = p;
       const rol = ['usuario', 'contabilidad', 'admin'].includes((rolRaw || '').toLowerCase()) ? rolRaw.toLowerCase() : 'usuario';
-      const area_id = areaRaw ? areaByName[areaRaw.toLowerCase()] : undefined;
+      const area_id = areaRaw ? areaByName[norm(areaRaw)] : undefined;
       return { nombre, email, cedula, rol, area_id, areaRaw };
     });
   }

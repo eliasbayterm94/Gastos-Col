@@ -1,6 +1,7 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
 import { IcGrid, IcList, IcWallet, IcReceipt, IcLogout } from './Icons.jsx';
+import UpdateButton from './UpdateButton.jsx';
 
 const NAV = [
   { to: '/resumen', label: 'Resumen', icon: IcGrid },
@@ -18,8 +19,9 @@ export default function OperarioLayout() {
     <div className="fc-app" style={{ flexDirection: 'column' }}>
       <div className="fc-topbar">
         <div className="fc-topbar-page-title">Forest Gastos</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="fc-small" style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <UpdateButton />
+          <span className="fc-small" style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {profile?.nombre}
           </span>
           <button className="fc-btn fc-btn-ghost" onClick={doLogout} aria-label="Salir" style={{ padding: '8px 10px' }}>

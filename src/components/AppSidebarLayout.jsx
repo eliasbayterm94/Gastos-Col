@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext.jsx';
 import { IcMenu, IcLogout } from './Icons.jsx';
+import UpdateButton from './UpdateButton.jsx';
 
 // Layout desktop-first con sidebar navy y drawer en móvil.
 // nav: [{ to, label, icon, end }], title = título de la app en el sidebar.
@@ -48,7 +49,8 @@ export default function AppSidebarLayout({ nav, title = 'Forest Gastos', badge }
             <button className="fc-mobile-toggle" onClick={() => setOpen(true)} aria-label="Menú"><IcMenu /></button>
             <div className="fc-topbar-page-title">{title}</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <UpdateButton />
             <span className="fc-small" style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile?.nombre}
             </span>
